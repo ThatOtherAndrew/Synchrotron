@@ -1,40 +1,29 @@
 import time
 from collections.abc import Mapping
 
-import numpy as np
 import pyaudio
 
-from node import Input, Node
+import node
 
 SAMPLE_RATE = 44100
 
 
-class Synchrotron(Node):
+class Synchrotron(node.Node):
     def __init__(self):
         super().__init__()
-        self.inputs['master'] = Input(self)
+        self.inputs['master'] = node.Input(self)
 
-        self.sample_clock = 0
-
-    def get_buffer(self, length: int):
-        sine_window = np.linspace(
-            0,
-            2 * np.pi * 440 * SAMPLE_RATE / length,
-            num=length,
-            endpoint=False,
-            dtype=np.float32
-        )
-        return np.sin(sine_window)
+        self.offset = 0
 
     def __pyaudio_callback(
         self,
-        in_data: bytes | None,
+        _: bytes | None,
         frame_count: int,
-        time_info: Mapping[str, float],
-        status: int,
+        __: Mapping[str, float],
+        ___: int,
     ) -> tuple[bytes | None, int]:
-        buffer = self.get_buffer(length=frame_count)
-        self.sample_clock += frame_count
+        buffer = self.inputs['master'].read(self.offset, frame_count)
+        self.offset += frame_count
         return buffer, pyaudio.paContinue
 
     def play(self) -> None:
@@ -61,4 +50,12 @@ class Synchrotron(Node):
 
 if __name__ == '__main__':
     synchrotron = Synchrotron()
+    freq = node.ConstantNode(440.)
+    sine = node.SineNode()
+    debugger = node.DebugNode()
+
+    synchrotron.inputs['master'].link(debugger.outputs['out'])
+    debugger.inputs['in'].link(sine.outputs['sine'])
+    sine.inputs['frequency'].link(freq.outputs['value'])
+
     synchrotron.play()
