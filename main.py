@@ -1,7 +1,9 @@
 import time
 from collections.abc import Mapping
 
+import numpy as np
 import pyaudio
+from numpy.typing import NDArray
 
 import node
 
@@ -11,7 +13,8 @@ SAMPLE_RATE = 44100
 class Synchrotron(node.Node):
     def __init__(self):
         super().__init__()
-        self.inputs['master'] = node.Input(self)
+        self.inputs['left'] = node.Input(self)
+        self.inputs['right'] = node.Input(self)
 
         self.offset = 0
 
@@ -21,16 +24,22 @@ class Synchrotron(node.Node):
         frame_count: int,
         __: Mapping[str, float],
         ___: int,
-    ) -> tuple[bytes | None, int]:
-        buffer = self.inputs['master'].read(self.offset, frame_count)
+    ) -> tuple[NDArray[np.float32], int]:
+        left_buffer = self.inputs['left'].read(self.offset, frame_count)
+        right_buffer = self.inputs['right'].read(self.offset, frame_count)
         self.offset += frame_count
-        return buffer, pyaudio.paContinue
+
+        stereo_buffer = np.empty(shape=left_buffer.size + right_buffer.size, dtype=np.float32)
+        stereo_buffer[0::2] = left_buffer
+        stereo_buffer[1::2] = right_buffer
+        return stereo_buffer, pyaudio.paContinue
 
     def play(self) -> None:
         pyaudio_session = pyaudio.PyAudio()
+        # noinspection PyTypeChecker
         stream = pyaudio_session.open(
             rate=SAMPLE_RATE,
-            channels=1,
+            channels=2,
             format=pyaudio.paFloat32,
             output=True,
             frames_per_buffer=SAMPLE_RATE,
@@ -50,12 +59,14 @@ class Synchrotron(node.Node):
 
 if __name__ == '__main__':
     synchrotron = Synchrotron()
-    freq = node.ConstantNode(440.)
-    sine = node.SineNode()
-    debugger = node.DebugNode()
+    freq_l = node.ConstantNode(440.)
+    sine_l = node.SineNode()
+    freq_r = node.ConstantNode(660.)
+    sine_r = node.SineNode()
 
-    synchrotron.inputs['master'].link(debugger.outputs['out'])
-    debugger.inputs['in'].link(sine.outputs['sine'])
-    sine.inputs['frequency'].link(freq.outputs['value'])
+    synchrotron.inputs['left'].link(sine_l.outputs['sine'])
+    sine_l.inputs['frequency'].link(freq_l.outputs['value'])
+    synchrotron.inputs['right'].link(sine_r.outputs['sine'])
+    sine_r.inputs['frequency'].link(freq_r.outputs['value'])
 
     synchrotron.play()

@@ -53,6 +53,16 @@ class ConstantNode(Node):
         return self.value
 
 
+class SilenceNode(Node):
+    def __init__(self) -> None:
+        super().__init__()
+        self.outputs['silence'] = Output(self, self.silence)
+
+    @staticmethod
+    def silence(_: int, duration: int) -> Any:
+        return np.zeros(shape=duration, dtype=np.float32)
+
+
 class SineNode(Node):
     def __init__(self) -> None:
         super().__init__()
