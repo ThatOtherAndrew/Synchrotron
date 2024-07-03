@@ -4,11 +4,16 @@ from collections.abc import Mapping
 import numpy as np
 import pyaudio
 
+from node import Input, Node
+
 SAMPLE_RATE = 44100
 
 
-class Synchrotron:
+class Synchrotron(Node):
     def __init__(self):
+        super().__init__()
+        self.inputs['master'] = Input(self)
+
         self.sample_clock = 0
 
     def get_buffer(self, length: int):
