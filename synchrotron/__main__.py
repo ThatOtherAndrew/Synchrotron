@@ -5,16 +5,17 @@ import numpy as np
 import pyaudio
 from numpy.typing import NDArray
 
-import node
+import synchrotron.nodes.base
+from . import nodes
 
 SAMPLE_RATE = 44100
 
 
-class Synchrotron(node.Node):
+class Synchrotron(synchrotron.nodes.base.Node):
     def __init__(self):
         super().__init__()
-        self.inputs['left'] = node.Input(self)
-        self.inputs['right'] = node.Input(self)
+        self.inputs['left'] = synchrotron.nodes.base.Input(self)
+        self.inputs['right'] = synchrotron.nodes.base.Input(self)
 
         self.offset = 0
 
@@ -59,10 +60,10 @@ class Synchrotron(node.Node):
 
 if __name__ == '__main__':
     synchrotron = Synchrotron()
-    freq_l = node.ConstantNode(440.)
-    sine_l = node.SineNode()
-    freq_r = node.ConstantNode(660.)
-    sine_r = node.SineNode()
+    freq_l = nodes.data.ConstantNode(440.)
+    sine_l = nodes.audio.SineNode()
+    freq_r = nodes.data.ConstantNode(660.)
+    sine_r = nodes.audio.SineNode()
 
     synchrotron.inputs['left'].link(sine_l.outputs['sine'])
     sine_l.inputs['frequency'].link(freq_l.outputs['value'])
