@@ -68,15 +68,21 @@ class Synchrotron:
 
 
 def main(synchrotron: Synchrotron) -> None:
-    freq = nodes.data.ConstantNode(value=440)
+    low = nodes.data.ConstantNode(440)
+    high = nodes.data.ConstantNode(880)
+    modulator = nodes.data.UniformRandomNode()
     source = nodes.audio.SineNode()
     sink = nodes.audio.PlaybackNode(synchrotron)
-    for node in (freq, source, sink):
+    debug = nodes.data.DebugNode()
+    for node in (low, high, modulator, source, sink, debug):
         synchrotron.add_node(node)
 
-    synchrotron.connect(freq.outputs['value'], source.inputs['frequency'])
+    synchrotron.connect(low.outputs['value'], modulator.inputs['min'])
+    synchrotron.connect(high.outputs['value'], modulator.inputs['max'])
+    synchrotron.connect(modulator.outputs['out'], source.inputs['frequency'])
     synchrotron.connect(source.outputs['sine'], sink.inputs['left'])
     synchrotron.connect(source.outputs['sine'], sink.inputs['right'])
+    synchrotron.connect(source.outputs['sine'], debug.inputs['in'])
 
     while True:
         print(f'\rTick {synchrotron.global_clock}', end='')

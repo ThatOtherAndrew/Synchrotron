@@ -17,13 +17,26 @@ class ConstantNode(Node):
         self.outputs['value'].write(np.full(shape=ctx.buffer_size, fill_value=self.value, dtype=np.float32))
 
 
+class UniformRandomNode(Node):
+    def __init__(self) -> None:
+        super().__init__()
+        self.inputs['min'] = Input(self)
+        self.inputs['max'] = Input(self)
+        self.outputs['out'] = Output(self)
+
+        self.rng = np.random.default_rng()
+
+    def render(self, ctx: RenderContext) -> None:
+        low = self.inputs['min'].read()[0]
+        high = self.inputs['max'].read()[0]
+        self.outputs['out'].write(self.rng.uniform(low=low, high=high, size=ctx.buffer_size).astype(np.float32))
+
+
 class DebugNode(Node):
     def __init__(self) -> None:
         super().__init__()
         self.inputs['in'] = Input(self)
-        self.outputs['out'] = Output(self)
 
     def render(self, _: RenderContext) -> None:
         buffer = self.inputs['in'].read()
         print(buffer)
-        self.outputs['out'].write(buffer)
