@@ -8,35 +8,34 @@ from .base import Input, Node, Output, RenderContext
 
 
 class ConstantNode(Node):
+    out: Output
+
     def __init__(self, value: Any) -> None:
         super().__init__()
-        self.outputs['value'] = Output(self)
         self.value = value
 
     def render(self, ctx: RenderContext) -> None:
-        self.outputs['value'].write(np.full(shape=ctx.buffer_size, fill_value=self.value, dtype=np.float32))
+        self.out.write(np.full(shape=ctx.buffer_size, fill_value=self.value, dtype=np.float32))
 
 
 class UniformRandomNode(Node):
+    min: Input
+    max: Input
+    out: Output
+
     def __init__(self) -> None:
         super().__init__()
-        self.inputs['min'] = Input(self)
-        self.inputs['max'] = Input(self)
-        self.outputs['out'] = Output(self)
-
         self.rng = np.random.default_rng()
 
     def render(self, ctx: RenderContext) -> None:
-        low = self.inputs['min'].read()[0]
-        high = self.inputs['max'].read()[0]
-        self.outputs['out'].write(self.rng.uniform(low=low, high=high, size=ctx.buffer_size).astype(np.float32))
+        low = self.min.read()[0]
+        high = self.max.read()[0]
+        self.out.write(self.rng.uniform(low=low, high=high, size=ctx.buffer_size).astype(np.float32))
 
 
 class DebugNode(Node):
-    def __init__(self) -> None:
-        super().__init__()
-        self.inputs['in'] = Input(self)
+    input: Input
 
     def render(self, _: RenderContext) -> None:
-        buffer = self.inputs['in'].read()
+        buffer = self.input.read()
         print(buffer)

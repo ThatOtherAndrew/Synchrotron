@@ -12,22 +12,21 @@ if TYPE_CHECKING:
 
 
 class SilenceNode(Node):
-    def __init__(self) -> None:
-        super().__init__()
-        self.outputs['silence'] = Output(self)
+    out: Output
 
     def render(self, ctx: RenderContext) -> None:
-        self.outputs['silence'].write(np.zeros(shape=ctx.buffer_size, dtype=np.float32))
+        self.out.write(np.zeros(shape=ctx.buffer_size, dtype=np.float32))
 
 
 class SineNode(Node):
+    frequency: Input
+    out: Output
+
     def __init__(self) -> None:
         super().__init__()
-        self.inputs['frequency'] = Input(self)
-        self.outputs['sine'] = Output(self)
 
     def render(self, ctx: RenderContext) -> None:
-        frequency = self.inputs['frequency'].read()[0]
+        frequency = self.frequency.read()[0]
         sine_window = np.linspace(
             0,
             2 * np.pi * frequency * ctx.sample_rate / ctx.buffer_size,
@@ -35,14 +34,15 @@ class SineNode(Node):
             endpoint=False,
             dtype=np.float32
         )
-        self.outputs['sine'].write(np.sin(sine_window))
+        self.out.write(np.sin(sine_window))
 
 
 class PlaybackNode(Node):
+    left: Input
+    right: Input
+
     def __init__(self, synchrotron: Synchrotron) -> None:
         super().__init__()
-        self.inputs['left'] = Input(self)
-        self.inputs['right'] = Input(self)
 
         # noinspection PyTypeChecker
         self.stream = synchrotron.pyaudio_session.open(
@@ -54,8 +54,8 @@ class PlaybackNode(Node):
         )
 
     def render(self, _: RenderContext) -> None:
-        left_buffer = self.inputs['left'].read()
-        right_buffer = self.inputs['right'].read()
+        left_buffer = self.left.read()
+        right_buffer = self.right.read()
 
         stereo_buffer = np.empty(shape=left_buffer.size + right_buffer.size, dtype=np.float32)
         stereo_buffer[0::2] = left_buffer

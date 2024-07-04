@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, get_type_hints
 
 if TYPE_CHECKING:
     from ..types import SignalBuffer
@@ -38,6 +38,17 @@ class Node(abc.ABC):
     def __init__(self) -> None:
         self.inputs: dict[str, Input] = {}
         self.outputs: dict[str, Output] = {}
+
+        # A bit of magic so inputs and outputs are nicer to interact with
+        for name, cls in get_type_hints(self.__class__).items():
+            if cls is Input:
+                instance = Input(self)
+                self.inputs[name] = instance
+                setattr(self, name, instance)
+            elif cls is Output:
+                instance = Output(self)
+                self.outputs[name] = instance
+                setattr(self, name, instance)
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} (I:{len(self.inputs)} O:{len(self.outputs)})>'

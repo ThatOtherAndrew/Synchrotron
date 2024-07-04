@@ -77,12 +77,12 @@ def main(synchrotron: Synchrotron) -> None:
     for node in (low, high, modulator, source, sink, debug):
         synchrotron.add_node(node)
 
-    synchrotron.connect(low.outputs['value'], modulator.inputs['min'])
-    synchrotron.connect(high.outputs['value'], modulator.inputs['max'])
-    synchrotron.connect(modulator.outputs['out'], source.inputs['frequency'])
-    synchrotron.connect(source.outputs['sine'], sink.inputs['left'])
-    synchrotron.connect(source.outputs['sine'], sink.inputs['right'])
-    synchrotron.connect(source.outputs['sine'], debug.inputs['in'])
+    synchrotron.connect(low.out, modulator.min)
+    synchrotron.connect(high.out, modulator.max)
+    synchrotron.connect(modulator.out, source.frequency)
+    synchrotron.connect(source.out, sink.left)
+    synchrotron.connect(source.out, sink.right)
+    synchrotron.connect(source.out, debug.input)
 
     while True:
         print(f'\rTick {synchrotron.global_clock}', end='')
