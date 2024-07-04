@@ -1,46 +1,41 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pyaudio
 
-from .base import Input, Node, Output
+from .base import Input, Node, Output, RenderContext
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from numpy.typing import NDArray
-
     from ..__main__ import Synchrotron
 
 
 class SilenceNode(Node):
     def __init__(self) -> None:
         super().__init__()
-        self.outputs['silence'] = Output(self, self.silence)
+        self.outputs['silence'] = Output(self)
 
-    @staticmethod
-    def silence(_: int, duration: int) -> Any:
-        return np.zeros(shape=duration, dtype=np.float32)
+    def render(self, ctx: RenderContext) -> None:
+        self.outputs['silence'].write(np.zeros(shape=ctx.buffer_size, dtype=np.float32))
 
 
 class SineNode(Node):
     def __init__(self) -> None:
         super().__init__()
         self.inputs['frequency'] = Input(self)
-        self.outputs['sine'] = Output(self, self.sine)
+        self.outputs['sine'] = Output(self)
 
-    def sine(self, offset: int, duration: int):
-        frequency = self.inputs['frequency'].read(offset, duration)
+    def render(self, ctx: RenderContext) -> None:
+        frequency = self.inputs['frequency'].read()
         sine_window = np.linspace(
             0,
-            2 * np.pi * frequency * 44100 / duration,
-            num=duration,
+            2 * np.pi * frequency * ctx.sample_rate / ctx.buffer_size,
+            num=ctx.buffer_size,
             endpoint=False,
             dtype=np.float32
         )
-        return np.sin(sine_window)
+        self.outputs['sine'].write(np.sin(sine_window))
 
 
 class PlaybackNode(Node):
@@ -49,7 +44,6 @@ class PlaybackNode(Node):
         self.inputs['left'] = Input(self)
         self.inputs['right'] = Input(self)
 
-        self.synchrotron = synchrotron
         # noinspection PyTypeChecker
         self.stream = synchrotron.pyaudio_session.open(
             rate=synchrotron.sample_rate,
@@ -57,24 +51,13 @@ class PlaybackNode(Node):
             format=pyaudio.paFloat32,
             output=True,
             frames_per_buffer=synchrotron.sample_rate,
-            stream_callback=self.__pyaudio_callback,
         )
 
-    def __pyaudio_callback(
-        self,
-        _: bytes | None,
-        frame_count: int,
-        __: Mapping[str, float],
-        ___: int,
-    ) -> tuple[NDArray[np.float32], int]:
-        left_buffer = self.inputs['left'].read(self.synchrotron.global_clock, frame_count)
-        right_buffer = self.inputs['right'].read(self.synchrotron.global_clock, frame_count)
-        self.synchrotron.global_clock += frame_count
+    def render(self, _: RenderContext) -> None:
+        left_buffer = self.inputs['left'].read()
+        right_buffer = self.inputs['right'].read()
 
         stereo_buffer = np.empty(shape=left_buffer.size + right_buffer.size, dtype=np.float32)
         stereo_buffer[0::2] = left_buffer
         stereo_buffer[1::2] = right_buffer
-        return stereo_buffer, pyaudio.paContinue
-
-    def start_streaming(self) -> None:
-        self.stream.start_stream()
+        self.stream.write(stereo_buffer)

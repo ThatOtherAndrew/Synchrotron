@@ -1,9 +1,12 @@
 from queue import SimpleQueue
+from time import sleep
 
 import pyaudio
 from graphlib import TopologicalSorter
 
+from . import nodes
 from .nodes import Input, Node, Output
+from .nodes.base import RenderContext
 
 
 class Synchrotron:
@@ -48,14 +51,46 @@ class Synchrotron:
 
         node_graph = TopologicalSorter(self.nodes)
         node_graph.prepare()
+        render_context = RenderContext(
+            global_clock=self.global_clock,
+            sample_rate=self.sample_rate,
+            buffer_size=self.buffer_size
+        )
+
         while node_graph.is_active():
             for node in node_graph.get_ready():
-                node.render()
+                node.render(render_context)
                 for output in node.outputs.values():
                     for target_input in self.connections[output]:
                         target_input.buffer = output.buffer
                 node_graph.done(node)
 
+        self.global_clock += 1
+
+    def stop(self) -> None:
+        self.pyaudio_session.terminate()
+
+
+def main(synchrotron: Synchrotron) -> None:
+    freq = nodes.data.ConstantNode(value=440)
+    source = nodes.audio.SineNode()
+    sink = nodes.data.DebugNode()
+    for node in (freq, source, sink):
+        synchrotron.add_node(node)
+
+    synchrotron.connect(freq.outputs['value'], source.inputs['frequency'])
+    synchrotron.connect(source.outputs['sine'], sink.inputs['in'])
+
+    while True:
+        synchrotron.tick()
+        sleep(1)
+
 
 if __name__ == '__main__':
-    ...
+    session = Synchrotron()
+    try:
+        main(session)
+    except KeyboardInterrupt:
+        print('Keyboard interrupt received, exiting')
+    finally:
+        session.stop()
