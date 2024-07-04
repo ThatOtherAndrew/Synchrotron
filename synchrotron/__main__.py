@@ -70,23 +70,25 @@ class Synchrotron:
 def main(synchrotron: Synchrotron) -> None:
     freq = nodes.data.ConstantNode(value=440)
     source = nodes.audio.SineNode()
-    sink = nodes.data.DebugNode()
+    sink = nodes.audio.PlaybackNode(synchrotron)
     for node in (freq, source, sink):
         synchrotron.add_node(node)
 
     synchrotron.connect(freq.outputs['value'], source.inputs['frequency'])
-    synchrotron.connect(source.outputs['sine'], sink.inputs['in'])
+    synchrotron.connect(source.outputs['sine'], sink.inputs['left'])
+    synchrotron.connect(source.outputs['sine'], sink.inputs['right'])
 
     while True:
+        print(f'\rTick {synchrotron.global_clock}', end='')
         synchrotron.tick()
-        sleep(1)
 
 
 if __name__ == '__main__':
     session = Synchrotron()
     try:
         main(session)
+        sleep(0.5)
     except KeyboardInterrupt:
-        print('Keyboard interrupt received, exiting')
+        print('\nKeyboard interrupt received, exiting')
     finally:
         session.stop()
