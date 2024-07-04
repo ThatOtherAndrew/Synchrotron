@@ -13,6 +13,9 @@ class Input:
         self.node = node
         self.buffer: SignalBuffer | None = None
 
+    def __repr__(self) -> str:
+        return f'<{self.node.__class__.__name__} input>'
+
     def read(self) -> SignalBuffer:
         if self.buffer is None:
             raise RuntimeError('input buffer cannot be read from as it is empty')
@@ -24,6 +27,9 @@ class Output:
         self.node = node
         self.buffer = None
 
+    def __repr__(self) -> str:
+        return f'<{self.node.__class__.__name__} output>'
+
     def write(self, buffer: SignalBuffer) -> None:
         self.buffer = buffer
 
@@ -32,6 +38,9 @@ class Node(abc.ABC):
     def __init__(self) -> None:
         self.inputs: dict[str, Input] = {}
         self.outputs: dict[str, Output] = {}
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__} (I:{len(self.inputs)} O:{len(self.outputs)})>'
 
     @abc.abstractmethod
     def render(self, ctx: RenderContext) -> None:

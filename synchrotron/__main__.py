@@ -39,7 +39,7 @@ class Synchrotron:
         while not self.pending_connections.empty():
             source, destination, connect = self.pending_connections.get()
             if connect:
-                self.nodes[source.node].add(destination.node)
+                self.nodes[destination.node].add(source.node)
                 self.connections[source].add(destination)
             else:
                 self.connections[source].remove(destination)
@@ -47,23 +47,19 @@ class Synchrotron:
                     self.connections[output].intersection(destination.node.inputs.values())
                     for output in source.node.outputs.values()
                 ):
-                    self.nodes[source.node].remove(destination.node)
+                    self.nodes[destination.node].remove(source.node)
 
-        node_graph = TopologicalSorter(self.nodes)
-        node_graph.prepare()
         render_context = RenderContext(
             global_clock=self.global_clock,
             sample_rate=self.sample_rate,
             buffer_size=self.buffer_size
         )
-
-        while node_graph.is_active():
-            for node in node_graph.get_ready():
-                node.render(render_context)
-                for output in node.outputs.values():
-                    for target_input in self.connections[output]:
-                        target_input.buffer = output.buffer
-                node_graph.done(node)
+        node_graph = TopologicalSorter(self.nodes)
+        for node in node_graph.static_order():
+            node.render(render_context)
+            for output in node.outputs.values():
+                for target_input in self.connections[output]:
+                    target_input.buffer = output.buffer
 
         self.global_clock += 1
 

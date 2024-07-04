@@ -27,7 +27,7 @@ class SineNode(Node):
         self.outputs['sine'] = Output(self)
 
     def render(self, ctx: RenderContext) -> None:
-        frequency = self.inputs['frequency'].read()
+        frequency = self.inputs['frequency'].read()[0]
         sine_window = np.linspace(
             0,
             2 * np.pi * frequency * ctx.sample_rate / ctx.buffer_size,
