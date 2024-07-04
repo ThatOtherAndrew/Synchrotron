@@ -1,73 +1,42 @@
 import time
-from collections.abc import Mapping
 
-import numpy as np
 import pyaudio
-from numpy.typing import NDArray
 
-import synchrotron.nodes.base
 from . import nodes
 
-SAMPLE_RATE = 44100
 
+class Synchrotron:
+    def __init__(self, sample_rate: int = 44100):
+        self.pyaudio_session = pyaudio.PyAudio()
+        self.global_clock = 0
 
-class Synchrotron(synchrotron.nodes.base.Node):
-    def __init__(self):
-        super().__init__()
-        self.inputs['left'] = synchrotron.nodes.base.Input(self)
-        self.inputs['right'] = synchrotron.nodes.base.Input(self)
+        # It'd be cool to have a dynamic sample rate, but it would be such an implementation headache
+        self.sample_rate = sample_rate
 
-        self.offset = 0
-
-    def __pyaudio_callback(
-        self,
-        _: bytes | None,
-        frame_count: int,
-        __: Mapping[str, float],
-        ___: int,
-    ) -> tuple[NDArray[np.float32], int]:
-        left_buffer = self.inputs['left'].read(self.offset, frame_count)
-        right_buffer = self.inputs['right'].read(self.offset, frame_count)
-        self.offset += frame_count
-
-        stereo_buffer = np.empty(shape=left_buffer.size + right_buffer.size, dtype=np.float32)
-        stereo_buffer[0::2] = left_buffer
-        stereo_buffer[1::2] = right_buffer
-        return stereo_buffer, pyaudio.paContinue
-
-    def play(self) -> None:
-        pyaudio_session = pyaudio.PyAudio()
-        # noinspection PyTypeChecker
-        stream = pyaudio_session.open(
-            rate=SAMPLE_RATE,
-            channels=2,
-            format=pyaudio.paFloat32,
-            output=True,
-            frames_per_buffer=SAMPLE_RATE,
-            stream_callback=self.__pyaudio_callback,
-        )
-
+    def play(self, playback_node: nodes.audio.PlaybackNode) -> None:
+        playback_node.start_streaming()
         try:
-            while stream.is_active():
+            while playback_node.stream.is_active():
                 time.sleep(0.1)
         except KeyboardInterrupt:
             print('Keyboard interrupt received')
         finally:
             print('Closing stream')
-            stream.close()
-            pyaudio_session.terminate()
+            playback_node.stream.close()
+            self.pyaudio_session.terminate()
 
 
 if __name__ == '__main__':
     synchrotron = Synchrotron()
+    output = nodes.audio.PlaybackNode(synchrotron)
     freq_l = nodes.data.ConstantNode(440.)
     sine_l = nodes.audio.SineNode()
     freq_r = nodes.data.ConstantNode(660.)
     sine_r = nodes.audio.SineNode()
 
-    synchrotron.inputs['left'].link(sine_l.outputs['sine'])
+    output.inputs['left'].link(sine_l.outputs['sine'])
     sine_l.inputs['frequency'].link(freq_l.outputs['value'])
-    synchrotron.inputs['right'].link(sine_r.outputs['sine'])
+    output.inputs['right'].link(sine_r.outputs['sine'])
     sine_r.inputs['frequency'].link(freq_r.outputs['value'])
 
-    synchrotron.play()
+    synchrotron.play(output)
