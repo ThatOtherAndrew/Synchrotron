@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import threading
 from queue import SimpleQueue
-from typing import TYPE_CHECKING, Any
+from time import sleep
+from typing import TYPE_CHECKING
 
 import pyaudio
 from graphlib import TopologicalSorter
@@ -10,7 +12,7 @@ from . import nodes
 from .nodes.base import RenderContext
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from queue import Queue
 
     from .nodes import Input, Node, Output
 
@@ -22,7 +24,8 @@ class Synchrotron:
         self.nodes: dict[Node, set[Node]] = {}
         self.connections: dict[Output, set[Input]] = {}
         self.pending_connections: SimpleQueue[tuple[Output, Input, bool]] = SimpleQueue()
-        self.blockers: list[Callable[[], Any]] = []
+        self.output_queues: list[Queue] = []
+        self.stop_event = threading.Event()
 
         # It'd be cool to have a dynamic sample rate and buffer size, but it would be such an implementation headache
         self.sample_rate = sample_rate
@@ -42,10 +45,10 @@ class Synchrotron:
     def disconnect(self, from_output: Output, to_input: Input):
         self.pending_connections.put((from_output, to_input, False))
 
-    def add_blocker(self, blocker: Callable[[], Any]):
-        self.blockers.append(blocker)
+    def add_output_queue(self, queue: Queue):
+        self.output_queues.append(queue)
 
-    def tick(self):
+    def apply_pending_connections(self) -> None:
         while not self.pending_connections.empty():
             source, destination, connect = self.pending_connections.get()
             if connect:
@@ -59,6 +62,12 @@ class Synchrotron:
                 ):
                     self.nodes[destination.node].remove(source.node)
 
+    def render_graph(self) -> bool:
+        self.apply_pending_connections()
+
+        if self.stop_event.is_set():
+            return False
+
         render_context = RenderContext(
             global_clock=self.global_clock,
             sample_rate=self.sample_rate,
@@ -71,17 +80,29 @@ class Synchrotron:
                 for target_input in self.connections[output]:
                     target_input.buffer = output.buffer
 
-        for blocker in self.blockers:
-            blocker()
+        for queue in self.output_queues:
+            queue.join()
         self.global_clock += 1
+        return True
+
+    def run(self) -> None:
+        while self.render_graph():
+            pass
 
     def stop(self) -> None:
+        self.stop_event.set()
         self.pyaudio_session.terminate()
+        for queue in self.output_queues:
+            try:
+                while True:
+                    queue.task_done()
+            except ValueError:  # noqa: PERF203
+                pass
 
 
-def main(synchrotron: Synchrotron) -> None:
+def init_nodes(synchrotron: Synchrotron) -> None:
     low = nodes.data.ConstantNode(440)
-    high = nodes.data.ConstantNode(880)
+    high = nodes.data.ConstantNode(500)
     modulator = nodes.data.UniformRandomNode()
     source = nodes.audio.SineNode()
     sink = nodes.audio.PlaybackNode(synchrotron)
@@ -96,15 +117,18 @@ def main(synchrotron: Synchrotron) -> None:
     synchrotron.connect(source.out, sink.right)
     # synchrotron.connect(source.out, debug.input)
 
-    while True:
-        synchrotron.tick()
-
 
 if __name__ == '__main__':
     session = Synchrotron()
+    init_nodes(session)
+    render_thread = threading.Thread(target=session.run, name='RenderThread')
+    render_thread.start()
     try:
-        main(session)
+        while True:
+            sleep(0.1)
     except KeyboardInterrupt:
         print('\nKeyboard interrupt received, exiting')
     finally:
+        print('Stopping')
         session.stop()
+        print('Stopped')

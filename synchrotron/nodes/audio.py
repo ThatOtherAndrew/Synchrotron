@@ -46,7 +46,7 @@ class PlaybackNode(Node):
         super().__init__()
 
         self.playback_queue = Queue()
-        synchrotron.add_blocker(self.playback_queue.join)
+        synchrotron.add_output_queue(self.playback_queue)
 
         # noinspection PyTypeChecker
         self.stream = synchrotron.pyaudio_session.open(
