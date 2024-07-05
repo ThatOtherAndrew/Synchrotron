@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import threading
 from queue import SimpleQueue
-from time import sleep
 from typing import TYPE_CHECKING
 
 import pyaudio
@@ -10,6 +9,7 @@ from graphlib import TopologicalSorter
 
 from . import nodes
 from .nodes.base import RenderContext
+from .ui.app import Console
 
 if TYPE_CHECKING:
     from queue import Queue
@@ -124,11 +124,6 @@ if __name__ == '__main__':
     render_thread = threading.Thread(target=session.run, name='RenderThread')
     render_thread.start()
     try:
-        while True:
-            sleep(0.1)
-    except KeyboardInterrupt:
-        print('\nKeyboard interrupt received, exiting')
+        Console(session).run()
     finally:
-        print('Stopping')
         session.stop()
-        print('Stopped')

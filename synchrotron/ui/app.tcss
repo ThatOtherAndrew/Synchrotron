@@ -1,0 +1,3 @@
+#output_log {
+    height: 1fr;
+}
