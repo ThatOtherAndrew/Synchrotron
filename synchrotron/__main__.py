@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 from queue import SimpleQueue
 from time import sleep
+from typing import TYPE_CHECKING, Any
 
 import pyaudio
 from graphlib import TopologicalSorter
 
 from . import nodes
-from .nodes import Input, Node, Output
 from .nodes.base import RenderContext
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from .nodes import Input, Node, Output
 
 
 class Synchrotron:
@@ -16,6 +23,7 @@ class Synchrotron:
         self.nodes: dict[Node, set[Node]] = {}
         self.connections: dict[Output, set[Input]] = {}
         self.pending_connections: SimpleQueue[tuple[Output, Input, bool]] = SimpleQueue()
+        self.blockers: list[Callable[[], Any]] = []
 
         # It'd be cool to have a dynamic sample rate and buffer size, but it would be such an implementation headache
         self.sample_rate = sample_rate
@@ -34,6 +42,9 @@ class Synchrotron:
 
     def disconnect(self, from_output: Output, to_input: Input):
         self.pending_connections.put((from_output, to_input, False))
+
+    def add_blocker(self, blocker: Callable[[], Any]):
+        self.blockers.append(blocker)
 
     def tick(self):
         while not self.pending_connections.empty():
@@ -61,6 +72,8 @@ class Synchrotron:
                 for target_input in self.connections[output]:
                     target_input.buffer = output.buffer
 
+        for blocker in self.blockers:
+            blocker()
         self.global_clock += 1
 
     def stop(self) -> None:
@@ -73,8 +86,8 @@ def main(synchrotron: Synchrotron) -> None:
     modulator = nodes.data.UniformRandomNode()
     source = nodes.audio.SineNode()
     sink = nodes.audio.PlaybackNode(synchrotron)
-    debug = nodes.data.DebugNode()
-    for node in (low, high, modulator, source, sink, debug):
+    # debug = nodes.data.DebugNode()
+    for node in (low, high, modulator, source, sink):
         synchrotron.add_node(node)
 
     synchrotron.connect(low.out, modulator.min)
@@ -82,10 +95,9 @@ def main(synchrotron: Synchrotron) -> None:
     synchrotron.connect(modulator.out, source.frequency)
     synchrotron.connect(source.out, sink.left)
     synchrotron.connect(source.out, sink.right)
-    synchrotron.connect(source.out, debug.input)
+    # synchrotron.connect(source.out, debug.input)
 
     while True:
-        print(f'\rTick {synchrotron.global_clock}', end='')
         synchrotron.tick()
 
 
@@ -93,7 +105,6 @@ if __name__ == '__main__':
     session = Synchrotron()
     try:
         main(session)
-        sleep(0.5)
     except KeyboardInterrupt:
         print('\nKeyboard interrupt received, exiting')
     finally:

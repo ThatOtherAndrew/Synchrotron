@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from queue import Queue
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -44,6 +45,9 @@ class PlaybackNode(Node):
     def __init__(self, synchrotron: Synchrotron) -> None:
         super().__init__()
 
+        self.playback_queue = Queue()
+        synchrotron.add_blocker(self.playback_queue.join)
+
         # noinspection PyTypeChecker
         self.stream = synchrotron.pyaudio_session.open(
             rate=synchrotron.sample_rate,
@@ -51,7 +55,13 @@ class PlaybackNode(Node):
             format=pyaudio.paFloat32,
             output=True,
             frames_per_buffer=synchrotron.sample_rate,
+            stream_callback=self._pyaudio_callback,
         )
+
+    def _pyaudio_callback(self, *_):
+        buffer = self.playback_queue.get()
+        self.playback_queue.task_done()
+        return buffer, pyaudio.paContinue
 
     def render(self, _: RenderContext) -> None:
         left_buffer = self.left.read()
@@ -60,4 +70,4 @@ class PlaybackNode(Node):
         stereo_buffer = np.empty(shape=left_buffer.size + right_buffer.size, dtype=np.float32)
         stereo_buffer[0::2] = left_buffer
         stereo_buffer[1::2] = right_buffer
-        self.stream.write(stereo_buffer)
+        self.playback_queue.put_nowait(stereo_buffer)
