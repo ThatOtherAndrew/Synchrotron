@@ -30,7 +30,7 @@ class SineNode(Node):
         frequency = self.frequency.read()[0]
         sine_window = np.linspace(
             0,
-            2 * np.pi * frequency * ctx.sample_rate / ctx.buffer_size,
+            2 * np.pi * frequency * ctx.buffer_size / ctx.sample_rate,
             num=ctx.buffer_size,
             endpoint=False,
             dtype=np.float32
@@ -54,7 +54,7 @@ class PlaybackNode(Node):
             channels=2,
             format=pyaudio.paFloat32,
             output=True,
-            frames_per_buffer=synchrotron.sample_rate,
+            frames_per_buffer=synchrotron.buffer_size,
             stream_callback=self._pyaudio_callback,
         )
 

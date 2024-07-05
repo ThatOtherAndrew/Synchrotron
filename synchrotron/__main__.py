@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class Synchrotron:
-    def __init__(self, sample_rate: int = 44100, buffer_size: int = 44100):
+    def __init__(self, sample_rate: int = 44100, buffer_size: int = 256):
         self.pyaudio_session = pyaudio.PyAudio()
         self.global_clock = 0
         self.nodes: dict[Node, set[Node]] = {}
