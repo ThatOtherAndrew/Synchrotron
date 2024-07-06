@@ -3,12 +3,13 @@
 %import common.WS
 %ignore WS
 
-?node: CNAME
-port: node "." (CNAME | "*")
+node: CNAME
+wildcard: "*"
+port: node "." (CNAME | wildcard)
 connection: port "->" port
 
 command: ["link" | "connect" | "attach"] connection                       -> link
        | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink
-       | ("delete | remove") node                                         -> delete
+       | ("delete" | "remove") node                                         -> delete
 
-start: command
+?start: command
