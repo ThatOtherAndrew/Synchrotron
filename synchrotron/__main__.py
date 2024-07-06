@@ -8,8 +8,8 @@ import pyaudio
 from graphlib import TopologicalSorter
 
 from . import nodes
+from .console.app import Console
 from .nodes.base import RenderContext
-from .ui.app import Console
 
 if TYPE_CHECKING:
     from queue import Queue

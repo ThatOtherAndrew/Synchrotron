@@ -1,0 +1,14 @@
+%import common.CNAME
+
+%import common.WS
+%ignore WS
+
+?node: CNAME
+port: node "." (CNAME | "*")
+connection: port "->" port
+
+command: ["link" | "connect" | "attach"] connection                       -> link
+       | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink
+       | ("delete | remove") node                                         -> delete
+
+start: command
