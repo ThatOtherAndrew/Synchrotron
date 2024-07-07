@@ -4,8 +4,11 @@ import threading
 from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
+import lark
 import pyaudio
 from graphlib import TopologicalSorter
+
+import synchrolang
 
 from . import nodes
 from .console.app import Console
@@ -17,15 +20,24 @@ if TYPE_CHECKING:
     from .nodes import Input, Node, Output
 
 
+@lark.v_args(inline=True)
+class SynchrolangTransformer(lark.Transformer):
+    def __init__(self, synchrotron: Synchrotron):
+        super().__init__()
+        self.synchrotron = synchrotron
+
+
 class Synchrotron:
     def __init__(self, sample_rate: int = 44100, buffer_size: int = 256):
         self.pyaudio_session = pyaudio.PyAudio()
         self.global_clock = 0
-        self.nodes: dict[Node, set[Node]] = {}
+        self.nodes: dict[str, Node] = {}
+        self.node_dependencies: dict[Node, set[Node]] = {}
         self.connections: dict[Output, set[Input]] = {}
         self.pending_connections: SimpleQueue[tuple[Output, Input, bool]] = SimpleQueue()
         self.output_queues: list[Queue] = []
         self.stop_event = threading.Event()
+        self.synchrolang_transformer = SynchrolangTransformer(self)
 
         # It'd be cool to have a dynamic sample rate and buffer size, but it would be such an implementation headache
         self.sample_rate = sample_rate
@@ -35,7 +47,8 @@ class Synchrotron:
         if node in self.nodes:
             return
 
-        self.nodes[node] = set()
+        self.nodes[node.name] = node
+        self.node_dependencies[node] = set()
         for output in node.outputs.values():
             self.connections[output] = set()
 
@@ -45,6 +58,10 @@ class Synchrotron:
     def disconnect(self, from_output: Output, to_input: Input):
         self.pending_connections.put((from_output, to_input, False))
 
+    def execute(self, synchrolang_expression: str):
+        tree = synchrolang.parser.parse(synchrolang_expression)
+        return self.synchrolang_transformer.transform(tree)
+
     def add_output_queue(self, queue: Queue):
         self.output_queues.append(queue)
 
@@ -52,7 +69,7 @@ class Synchrotron:
         while not self.pending_connections.empty():
             source, destination, connect = self.pending_connections.get()
             if connect:
-                self.nodes[destination.node].add(source.node)
+                self.node_dependencies[destination.node].add(source.node)
                 self.connections[source].add(destination)
             else:
                 self.connections[source].remove(destination)
@@ -60,7 +77,7 @@ class Synchrotron:
                     self.connections[output].intersection(destination.node.inputs.values())
                     for output in source.node.outputs.values()
                 ):
-                    self.nodes[destination.node].remove(source.node)
+                    self.node_dependencies[destination.node].remove(source.node)
 
     def render_graph(self) -> bool:
         self.apply_pending_connections()
@@ -73,7 +90,7 @@ class Synchrotron:
             sample_rate=self.sample_rate,
             buffer_size=self.buffer_size
         )
-        node_graph = TopologicalSorter(self.nodes)
+        node_graph = TopologicalSorter(self.node_dependencies)
         for node in node_graph.static_order():
             node.render(render_context)
             for output in node.outputs.values():
@@ -101,12 +118,11 @@ class Synchrotron:
 
 
 def init_nodes(synchrotron: Synchrotron) -> None:
-    low = nodes.data.ConstantNode(440)
-    high = nodes.data.ConstantNode(500)
-    modulator = nodes.data.UniformRandomNode()
-    source = nodes.audio.SineNode()
-    sink = nodes.audio.PlaybackNode(synchrotron)
-    # debug = nodes.data.DebugNode()
+    low = nodes.data.ConstantNode('low', 440)
+    high = nodes.data.ConstantNode('high', 500)
+    modulator = nodes.data.UniformRandomNode('modulator')
+    source = nodes.audio.SineNode('source')
+    sink = nodes.audio.PlaybackNode('sink', synchrotron)
     for node in (low, high, modulator, source, sink):
         synchrotron.add_node(node)
 
@@ -115,7 +131,6 @@ def init_nodes(synchrotron: Synchrotron) -> None:
     synchrotron.connect(modulator.out, source.frequency)
     synchrotron.connect(source.out, sink.left)
     synchrotron.connect(source.out, sink.right)
-    # synchrotron.connect(source.out, debug.input)
 
 
 if __name__ == '__main__':

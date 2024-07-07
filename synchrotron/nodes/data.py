@@ -10,8 +10,8 @@ from .base import Input, Node, Output, RenderContext
 class ConstantNode(Node):
     out: Output
 
-    def __init__(self, value: Any) -> None:
-        super().__init__()
+    def __init__(self, name: str, value: Any) -> None:
+        super().__init__(name=name)
         self.value = value
 
     def render(self, ctx: RenderContext) -> None:
@@ -23,8 +23,8 @@ class UniformRandomNode(Node):
     max: Input
     out: Output
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, name: str) -> None:
+        super().__init__(name=name)
         self.rng = np.random.default_rng()
 
     def render(self, ctx: RenderContext) -> None:

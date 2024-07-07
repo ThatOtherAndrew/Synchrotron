@@ -35,7 +35,8 @@ class Output:
 
 
 class Node(abc.ABC):
-    def __init__(self) -> None:
+    def __init__(self, name: str) -> None:
+        self.name = name
         self.inputs: dict[str, Input] = {}
         self.outputs: dict[str, Output] = {}
 

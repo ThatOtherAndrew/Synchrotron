@@ -23,8 +23,8 @@ class SineNode(Node):
     frequency: Input
     out: Output
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, name: str) -> None:
+        super().__init__(name=name)
 
     def render(self, ctx: RenderContext) -> None:
         frequency = self.frequency.read()[0]
@@ -42,8 +42,8 @@ class PlaybackNode(Node):
     left: Input
     right: Input
 
-    def __init__(self, synchrotron: Synchrotron) -> None:
-        super().__init__()
+    def __init__(self, name: str, synchrotron: Synchrotron) -> None:
+        super().__init__(name=name)
 
         self.playback_queue = Queue()
         synchrotron.add_output_queue(self.playback_queue)

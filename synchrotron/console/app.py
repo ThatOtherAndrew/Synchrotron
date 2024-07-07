@@ -6,8 +6,6 @@ from rich.markup import escape
 from textual import widgets
 from textual.app import App, ComposeResult
 
-from . import synchrolang
-
 if TYPE_CHECKING:
     from ..__main__ import Synchrotron
 
@@ -30,13 +28,13 @@ class CommandInput(widgets.Input):
         self.border_subtitle = 'Synchrolang'
 
     def action_submit(self) -> None:
-        command = self.value
-        self.app.output_log.write('[dim]> [cyan]' + escape(command))
+        expression = self.value
+        self.app.output_log.write('[dim]> [cyan]' + escape(expression))
 
         try:
-            return_data = synchrolang.parser.parse(command)
+            return_data = self.app.synchrotron.execute(expression)
         except Exception as error:
-            return_data = str(error)
+            return_data = error
 
         self.app.output_log.write(return_data)
 
