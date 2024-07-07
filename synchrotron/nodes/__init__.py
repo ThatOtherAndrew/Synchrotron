@@ -1,2 +1,2 @@
 from . import audio, data
-from .base import Input, Node, Output, RenderContext
+from .base import Connection, Input, Node, Output, Port, RenderContext

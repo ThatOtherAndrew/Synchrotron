@@ -8,32 +8,43 @@ if TYPE_CHECKING:
     from ..types import SignalBuffer
 
 
-class Input:
+class Port:
     def __init__(self, node: Node, name: str) -> None:
         self.node = node
         self.name = name
         self.buffer: SignalBuffer | None = None
 
-    def __repr__(self) -> str:
-        return f'<{self.node.__class__.__name__} input>'
+    @property
+    def class_name(self) -> str:
+        return self.node.__class__.__name__ + '.' + self.name
 
+    @property
+    def instance_name(self) -> str:
+        return self.node.name + '.' + self.name
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__} {self.node.__class__.__name__} {self.instance_name!r}>'
+
+
+class Input(Port):
     def read(self) -> SignalBuffer:
         if self.buffer is None:
             raise RuntimeError('input buffer cannot be read from as it is empty')
         return self.buffer
 
 
-class Output:
-    def __init__(self, node: Node, name: str) -> None:
-        self.node = node
-        self.name = name
-        self.buffer: SignalBuffer | None = None
-
-    def __repr__(self) -> str:
-        return f'<{self.node.__class__.__name__} output>'
-
+class Output(Port):
     def write(self, buffer: SignalBuffer) -> None:
         self.buffer = buffer
+
+
+class Connection:
+    def __init__(self, source: Output, sink: Input) -> None:
+        self.source = source
+        self.sink = sink
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__} {self.source.instance_name!r} -> {self.sink.instance_name!r}>'
 
 
 class Node(abc.ABC):
@@ -54,7 +65,7 @@ class Node(abc.ABC):
                 setattr(self, name, instance)
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} {self.name!r} (I:{len(self.inputs)} O:{len(self.outputs)})>'
+        return f'<{self.__class__.__name__} {self.name!r} ({len(self.inputs)} => {len(self.outputs)})>'
 
     @abc.abstractmethod
     def render(self, ctx: RenderContext) -> None:

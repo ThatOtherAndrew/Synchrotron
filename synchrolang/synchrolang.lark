@@ -7,7 +7,9 @@ WILDCARD: "*"
 
 node: CNAME
 port: node "." (CNAME | WILDCARD)
-connection: port "->" port
+input: port
+output: port
+connection: output "->" input
 
 command: ("link" | "connect" | "attach") connection                       -> link
        | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink

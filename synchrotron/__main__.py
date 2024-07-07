@@ -12,13 +12,12 @@ import synchrolang
 
 from . import nodes
 from .console.app import Console
-from .nodes.base import RenderContext
+from .nodes.base import Connection, Input, Output, RenderContext
 
 if TYPE_CHECKING:
     from queue import Queue
 
-    from .nodes import Input, Node, Output
-    from .types import Port
+    from .nodes import Node, Port
 
 
 @lark.v_args(inline=True)
@@ -38,7 +37,26 @@ class SynchrolangTransformer(lark.Transformer):
             return node.inputs[port_name]
         if port_name in node.outputs:
             return node.outputs[port_name]
-        raise ValueError(f"node {node!r} has no input/output '{port_name}'")
+
+        raise ValueError(f'port {node.__class__.__name__}.{port_name} does not exist')
+
+    @staticmethod
+    def input(port: Port) -> Input:
+        if isinstance(port, Input):
+            return port
+
+        raise ValueError(f'{port.class_name} is an output port and cannot be used as an input')
+
+    @staticmethod
+    def output(port: Port) -> Output:
+        if isinstance(port, Output):
+            return port
+
+        raise ValueError(f'{port.class_name} is an input port and cannot be used as an output')
+
+    @staticmethod
+    def connection(source: Output, sink: Input) -> Connection:
+        return Connection(source, sink)
 
 
 class Synchrotron:
@@ -133,7 +151,7 @@ class Synchrotron:
 
 def init_nodes(synchrotron: Synchrotron) -> None:
     low = nodes.data.ConstantNode('low', 440)
-    high = nodes.data.ConstantNode('high', 500)
+    high = nodes.data.ConstantNode('high', 880)
     modulator = nodes.data.UniformRandomNode('modulator')
     source = nodes.audio.SineNode('source')
     sink = nodes.audio.PlaybackNode('sink', synchrotron)
@@ -148,7 +166,7 @@ def init_nodes(synchrotron: Synchrotron) -> None:
 
 
 if __name__ == '__main__':
-    session = Synchrotron()
+    session = Synchrotron(buffer_size=22050)
     init_nodes(session)
     render_thread = threading.Thread(target=session.run, name='RenderThread')
     render_thread.start()
