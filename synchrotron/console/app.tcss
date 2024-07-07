@@ -1,3 +1,9 @@
 #output_log {
     height: 1fr;
+    border: round grey;
+}
+
+#command_input {
+    border: double grey;
+    padding: 0 1;
 }

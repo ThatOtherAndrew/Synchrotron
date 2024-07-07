@@ -18,6 +18,7 @@ class OutputLog(widgets.RichLog):
     # noinspection PyShadowingBuiltins
     def __init__(self, id: str) -> None:
         super().__init__(id=id, highlight=True, markup=True)
+        self.border_subtitle = 'Synchrotron'
 
 
 class CommandInput(widgets.Input):
@@ -26,10 +27,11 @@ class CommandInput(widgets.Input):
     # noinspection PyShadowingBuiltins
     def __init__(self, id: str) -> None:
         super().__init__(id=id, placeholder='Send a command...')
+        self.border_subtitle = 'Synchrolang'
 
     def action_submit(self) -> None:
         command = self.value
-        self.app.output_log.write('[bright_black]' + escape(f'> {command}'))
+        self.app.output_log.write('[dim]> [cyan]' + escape(command))
 
         try:
             return_data = synchrolang.parser.parse(command)
