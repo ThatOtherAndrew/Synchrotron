@@ -9,8 +9,9 @@ if TYPE_CHECKING:
 
 
 class Input:
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, name: str) -> None:
         self.node = node
+        self.name = name
         self.buffer: SignalBuffer | None = None
 
     def __repr__(self) -> str:
@@ -23,9 +24,10 @@ class Input:
 
 
 class Output:
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: Node, name: str) -> None:
         self.node = node
-        self.buffer = None
+        self.name = name
+        self.buffer: SignalBuffer | None = None
 
     def __repr__(self) -> str:
         return f'<{self.node.__class__.__name__} output>'
@@ -43,16 +45,16 @@ class Node(abc.ABC):
         # A bit of magic so inputs and outputs are nicer to interact with
         for name, cls in get_type_hints(self.__class__).items():
             if cls is Input:
-                instance = Input(self)
+                instance = Input(self, name=name)
                 self.inputs[name] = instance
                 setattr(self, name, instance)
             elif cls is Output:
-                instance = Output(self)
+                instance = Output(self, name=name)
                 self.outputs[name] = instance
                 setattr(self, name, instance)
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} (I:{len(self.inputs)} O:{len(self.outputs)})>'
+        return f'<{self.__class__.__name__} {self.name!r} (I:{len(self.inputs)} O:{len(self.outputs)})>'
 
     @abc.abstractmethod
     def render(self, ctx: RenderContext) -> None:

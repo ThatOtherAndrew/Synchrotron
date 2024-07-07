@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from queue import Queue
 
     from .nodes import Input, Node, Output
+    from .types import Port
 
 
 @lark.v_args(inline=True)
@@ -25,6 +26,19 @@ class SynchrolangTransformer(lark.Transformer):
     def __init__(self, synchrotron: Synchrotron):
         super().__init__()
         self.synchrotron = synchrotron
+
+    def node(self, name: lark.Token) -> Node:
+        if name.value not in self.synchrotron.nodes:
+            raise ValueError(f"node '{name.value}' not found")
+        return self.synchrotron.nodes[name.value]
+
+    @staticmethod
+    def port(node: Node, port_name: lark.Token) -> Port:
+        if port_name in node.inputs:
+            return node.inputs[port_name]
+        if port_name in node.outputs:
+            return node.outputs[port_name]
+        raise ValueError(f"node {node!r} has no input/output '{port_name}'")
 
 
 class Synchrotron:
