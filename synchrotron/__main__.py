@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
 import lark
@@ -22,14 +21,12 @@ if TYPE_CHECKING:
 
 @lark.v_args(inline=True)
 class SynchrolangTransformer(lark.Transformer):
-    def __init__(self, synchrotron: Synchrotron):
+    def __init__(self, synchrotron: Synchrotron) -> None:
         super().__init__()
         self.synchrotron = synchrotron
 
     def node(self, name: lark.Token) -> Node:
-        if name.value not in self.synchrotron.nodes:
-            raise ValueError(f"node '{name.value}' not found")
-        return self.synchrotron.nodes[name.value]
+        return self.synchrotron.get_node(name)
 
     @staticmethod
     def port(node: Node, port_name: lark.Token) -> Port:
@@ -54,20 +51,14 @@ class SynchrolangTransformer(lark.Transformer):
 
         raise ValueError(f'{port.class_name} is an input port and cannot be used as an output')
 
-    @staticmethod
-    def connection(source: Output, sink: Input) -> Connection:
-        return Connection(source, sink)
+    def connection(self, source: Output, sink: Input) -> Connection:
+        return self.synchrotron.get_connection(source, sink, return_disconnected=True)
 
 
 class Synchrotron:
-    def __init__(self, sample_rate: int = 44100, buffer_size: int = 256):
+    def __init__(self, sample_rate: int = 44100, buffer_size: int = 256) -> None:
         self.pyaudio_session = pyaudio.PyAudio()
         self.global_clock = 0
-        self.nodes: dict[str, Node] = {}
-        self.node_dependencies: dict[Node, set[Node]] = {}
-        self.connections: dict[Output, set[Input]] = {}
-        self.pending_connections: SimpleQueue[tuple[Output, Input, bool]] = SimpleQueue()
-        self.output_queues: list[Queue] = []
         self.stop_event = threading.Event()
         self.synchrolang_transformer = SynchrolangTransformer(self)
 
@@ -75,45 +66,67 @@ class Synchrotron:
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
 
-    def add_node(self, node: Node):
-        if node in self.nodes:
+        self._nodes: list[Node] = []
+        self._node_dependencies: dict[Node, set[Node]] = {}
+        self._connections: list[Connection] = []
+        self._output_queues: list[Queue] = []
+
+    def get_node(self, name: str) -> Node:
+        try:
+            return next(node for node in self._nodes if node.name == name)
+        except StopIteration:
+            raise ValueError(f"node '{name}' not found") from None
+
+    def add_node(self, node: Node) -> None:
+        if node in self._nodes:
+            raise ValueError(f'node {node!r} already added to graph')
+        name_collision = next((graph_node for graph_node in self._nodes if graph_node.name == node.name), None)
+        if name_collision is not None:
+            raise ValueError(f'node {node!r} has a duplicate name with node {name_collision.name}')
+
+        self._nodes.append(node)
+        self._node_dependencies[node] = set()
+
+    def get_connection(self, source: Output, sink: Input, return_disconnected: bool = False) -> Connection:
+        for connection in self._connections:
+            if connection.source == source and connection.sink == sink:
+                return connection
+
+        if return_disconnected:
+            return Connection(source, sink)
+        raise ValueError(f'connection {source.instance_name} -> {sink.instance_name} does not exist')
+
+    def add_connection(self, source: Output, sink: Input) -> None:
+        connection = self.get_connection(source, sink, return_disconnected=True)
+        if not connection.is_connected:
+            connection.is_connected = True
+            connection.source.connections.append(connection)
+            connection.sink.connection = connection
+            self._connections.append(connection)
+
+            self._node_dependencies[connection.sink.node].add(connection.source.node)
+
+    def remove_connection(self, source: Output, sink: Input) -> None:
+        try:
+            connection = self.get_connection(source, sink)
+        except ValueError:
             return
 
-        self.nodes[node.name] = node
-        self.node_dependencies[node] = set()
-        for output in node.outputs.values():
-            self.connections[output] = set()
+        connection.is_connected = False
+        connection.source.connections.remove(connection)
+        connection.sink.connection = None
+        self._connections.remove(connection)
 
-    def connect(self, from_output: Output, to_input: Input):
-        self.pending_connections.put((from_output, to_input, True))
+        # TODO: remove freed up node dependencies
 
-    def disconnect(self, from_output: Output, to_input: Input):
-        self.pending_connections.put((from_output, to_input, False))
-
-    def execute(self, synchrolang_expression: str):
+    def execute(self, synchrolang_expression: str) -> Node | Port | Connection | lark.Token:
         tree = synchrolang.parser.parse(synchrolang_expression)
         return self.synchrolang_transformer.transform(tree)
 
-    def add_output_queue(self, queue: Queue):
-        self.output_queues.append(queue)
-
-    def apply_pending_connections(self) -> None:
-        while not self.pending_connections.empty():
-            source, destination, connect = self.pending_connections.get()
-            if connect:
-                self.node_dependencies[destination.node].add(source.node)
-                self.connections[source].add(destination)
-            else:
-                self.connections[source].remove(destination)
-                if not any(
-                    self.connections[output].intersection(destination.node.inputs.values())
-                    for output in source.node.outputs.values()
-                ):
-                    self.node_dependencies[destination.node].remove(source.node)
+    def add_output_queue(self, queue: Queue) -> None:
+        self._output_queues.append(queue)
 
     def render_graph(self) -> bool:
-        self.apply_pending_connections()
-
         if self.stop_event.is_set():
             return False
 
@@ -122,14 +135,14 @@ class Synchrotron:
             sample_rate=self.sample_rate,
             buffer_size=self.buffer_size
         )
-        node_graph = TopologicalSorter(self.node_dependencies)
+        node_graph = TopologicalSorter(self._node_dependencies)
         for node in node_graph.static_order():
             node.render(render_context)
             for output in node.outputs.values():
-                for target_input in self.connections[output]:
-                    target_input.buffer = output.buffer
+                for connection in output.connections:
+                    connection.sink.buffer = connection.source.buffer
 
-        for queue in self.output_queues:
+        for queue in self._output_queues:
             queue.join()
         self.global_clock += 1
         return True
@@ -141,7 +154,7 @@ class Synchrotron:
     def stop(self) -> None:
         self.stop_event.set()
         self.pyaudio_session.terminate()
-        for queue in self.output_queues:
+        for queue in self._output_queues:
             try:
                 while True:
                     queue.task_done()
@@ -158,11 +171,11 @@ def init_nodes(synchrotron: Synchrotron) -> None:
     for node in (low, high, modulator, source, sink):
         synchrotron.add_node(node)
 
-    synchrotron.connect(low.out, modulator.min)
-    synchrotron.connect(high.out, modulator.max)
-    synchrotron.connect(modulator.out, source.frequency)
-    synchrotron.connect(source.out, sink.left)
-    synchrotron.connect(source.out, sink.right)
+    synchrotron.add_connection(low.out, modulator.min)
+    synchrotron.add_connection(high.out, modulator.max)
+    synchrotron.add_connection(modulator.out, source.frequency)
+    synchrotron.add_connection(source.out, sink.left)
+    synchrotron.add_connection(source.out, sink.right)
 
 
 if __name__ == '__main__':

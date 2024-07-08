@@ -27,6 +27,10 @@ class Port:
 
 
 class Input(Port):
+    def __init__(self, node: Node, name: str) -> None:
+        super().__init__(node=node, name=name)
+        self.connection: Connection | None = None
+
     def read(self) -> SignalBuffer:
         if self.buffer is None:
             raise RuntimeError('input buffer cannot be read from as it is empty')
@@ -34,17 +38,28 @@ class Input(Port):
 
 
 class Output(Port):
+    def __init__(self, node: Node, name: str) -> None:
+        super().__init__(node=node, name=name)
+        self.connections: list[Connection] = []
+
     def write(self, buffer: SignalBuffer) -> None:
         self.buffer = buffer
 
 
 class Connection:
-    def __init__(self, source: Output, sink: Input) -> None:
+    def __init__(self, source: Output, sink: Input, is_connected: bool = False) -> None:
         self.source = source
         self.sink = sink
+        self.is_connected = is_connected
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} {self.source.instance_name!r} -> {self.sink.instance_name!r}>'
+        status = 'connected' if self.is_connected else 'disconnected'
+        return f'<{self.__class__.__name__} {self.source.instance_name!r} -> {self.sink.instance_name!r} ({status})>'
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"cannot compare instances of '{self.__class__.__name__}' and '{other.__class__.__name__}'")
+        return self.source == other.source and self.sink == other.sink
 
 
 class Node(abc.ABC):
