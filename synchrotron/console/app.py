@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from lark.exceptions import VisitError
 from rich.highlighter import ReprHighlighter
@@ -8,6 +8,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from textual import widgets
 from textual.app import App, ComposeResult
+from textual.binding import BindingType, Binding
 
 if TYPE_CHECKING:
     from ..__main__ import Synchrotron
@@ -53,6 +54,10 @@ class Console(App):
     TITLE = 'Synchrotron'
     SUB_TITLE = 'Console'
     CSS_PATH = 'app.tcss'
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding('ctrl+c', action='quit', description='Quit', key_display='Ctrl-C', priority=True),
+        Binding('ctrl+k', action='command_palette', description='Command Palette', key_display='Ctrl-K', priority=True),
+    ]
 
     def __init__(self, synchrotron: Synchrotron):
         super().__init__()
