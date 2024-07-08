@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from lark.exceptions import VisitError
+from rich.highlighter import ReprHighlighter
 from rich.markup import escape
+from rich.panel import Panel
 from textual import widgets
 from textual.app import App, ComposeResult
 
@@ -34,10 +36,15 @@ class CommandInput(widgets.Input):
 
         try:
             return_data = self.app.synchrotron.execute(expression)
-        except VisitError as error:
-            return_data = error.orig_exc
         except Exception as error:
-            return_data = error
+            if isinstance(error, VisitError):
+                error = error.orig_exc
+            return_data = Panel(
+                ReprHighlighter()(str(error)),
+                title=error.__class__.__name__,
+                expand=False,
+                border_style='red'
+            )
 
         self.app.output_log.write(return_data)
 

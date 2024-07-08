@@ -37,14 +37,14 @@ class SynchrolangTransformer(lark.Transformer):
         if isinstance(port, Input):
             return port
 
-        raise ValueError(f'{port.instance_name} is an output port ({port.class_name}) and cannot be used as an input')
+        raise ValueError(f"'{port.instance_name}' is an output port ({port.class_name}) and cannot be used as an input")
 
     @staticmethod
     def output(port: Port) -> Output:
         if isinstance(port, Output):
             return port
 
-        raise ValueError(f'{port.instance_name} is an input port ({port.class_name}) and cannot be used as an output')
+        raise ValueError(f"'{port.instance_name}' is an input port ({port.class_name}) and cannot be used as an output")
 
     def connection(self, source: Output, sink: Input) -> Connection:
         return self.synchrotron.get_connection(source, sink, return_disconnected=True)
