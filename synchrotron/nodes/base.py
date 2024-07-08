@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, get_type_hints
 
 if TYPE_CHECKING:
+    from collections.abc import ValuesView
+
     from ..types import SignalBuffer
 
 
@@ -65,22 +67,53 @@ class Connection:
 class Node(abc.ABC):
     def __init__(self, name: str) -> None:
         self.name = name
-        self.inputs: dict[str, Input] = {}
-        self.outputs: dict[str, Output] = {}
+        self._inputs: dict[str, Input] = {}
+        self._outputs: dict[str, Output] = {}
 
         # A bit of magic so inputs and outputs are nicer to interact with
         for name, cls in get_type_hints(self.__class__).items():
+            if cls not in (Input, Output):
+                continue
+
+            if name in self._inputs or name in self._outputs:
+                raise RuntimeError(f"duplicate port name '{name}' for node {self.__class__.__name__}")
+
             if cls is Input:
                 instance = Input(self, name=name)
-                self.inputs[name] = instance
-                setattr(self, name, instance)
-            elif cls is Output:
+                self._inputs[name] = instance
+            else:
                 instance = Output(self, name=name)
-                self.outputs[name] = instance
-                setattr(self, name, instance)
+                self._outputs[name] = instance
+
+            setattr(self, name, instance)
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} {self.name!r} ({len(self.inputs)} => {len(self.outputs)})>'
+        return f'<{self.__class__.__name__} {self.name!r} ({len(self._inputs)} => {len(self._outputs)})>'
+
+    @property
+    def inputs(self) -> ValuesView[Input]:
+        return self._inputs.values()
+
+    @property
+    def outputs(self) -> ValuesView[Output]:
+        return self._outputs.values()
+
+    def get_input(self, input_name: str) -> Input:
+        if input_name in self._inputs:
+            return self._inputs[input_name]
+        raise ValueError(f'input {self.__class__.__name__}.{input_name} does not exist')
+
+    def get_output(self, output_name: str) -> Output:
+        if output_name in self._outputs:
+            return self._outputs[output_name]
+        raise ValueError(f'output {self.__class__.__name__}.{output_name} does not exist')
+
+    def get_port(self, port_name: str) -> Port:
+        if port_name in self._inputs:
+            return self._inputs[port_name]
+        if port_name in self._outputs:
+            return self._outputs[port_name]
+        raise ValueError(f'port {self.__class__.__name__}.{port_name} does not exist')
 
     @abc.abstractmethod
     def render(self, ctx: RenderContext) -> None:

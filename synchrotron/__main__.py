@@ -30,26 +30,21 @@ class SynchrolangTransformer(lark.Transformer):
 
     @staticmethod
     def port(node: Node, port_name: lark.Token) -> Port:
-        if port_name in node.inputs:
-            return node.inputs[port_name]
-        if port_name in node.outputs:
-            return node.outputs[port_name]
-
-        raise ValueError(f'port {node.__class__.__name__}.{port_name} does not exist')
+        return node.get_port(port_name)
 
     @staticmethod
     def input(port: Port) -> Input:
         if isinstance(port, Input):
             return port
 
-        raise ValueError(f'{port.class_name} is an output port and cannot be used as an input')
+        raise ValueError(f'{port.instance_name} is an output port ({port.class_name}) and cannot be used as an input')
 
     @staticmethod
     def output(port: Port) -> Output:
         if isinstance(port, Output):
             return port
 
-        raise ValueError(f'{port.class_name} is an input port and cannot be used as an output')
+        raise ValueError(f'{port.instance_name} is an input port ({port.class_name}) and cannot be used as an output')
 
     def connection(self, source: Output, sink: Input) -> Connection:
         return self.synchrotron.get_connection(source, sink, return_disconnected=True)
@@ -71,11 +66,11 @@ class Synchrotron:
         self._connections: list[Connection] = []
         self._output_queues: list[Queue] = []
 
-    def get_node(self, name: str) -> Node:
+    def get_node(self, node_name: str) -> Node:
         try:
-            return next(node for node in self._nodes if node.name == name)
+            return next(node for node in self._nodes if node.name == node_name)
         except StopIteration:
-            raise ValueError(f"node '{name}' not found") from None
+            raise ValueError(f"node '{node_name}' not found") from None
 
     def add_node(self, node: Node) -> None:
         if node in self._nodes:
@@ -98,13 +93,15 @@ class Synchrotron:
 
     def add_connection(self, source: Output, sink: Input) -> None:
         connection = self.get_connection(source, sink, return_disconnected=True)
-        if not connection.is_connected:
-            connection.is_connected = True
-            connection.source.connections.append(connection)
-            connection.sink.connection = connection
-            self._connections.append(connection)
+        if connection.is_connected:
+            return
 
-            self._node_dependencies[connection.sink.node].add(connection.source.node)
+        connection.is_connected = True
+        source.connections.append(connection)
+        sink.connection = connection
+        self._connections.append(connection)
+
+        self._node_dependencies[sink.node].add(source.node)
 
     def remove_connection(self, source: Output, sink: Input) -> None:
         try:
@@ -113,11 +110,13 @@ class Synchrotron:
             return
 
         connection.is_connected = False
-        connection.source.connections.remove(connection)
-        connection.sink.connection = None
+        source.connections.remove(connection)
+        sink.connection = None
         self._connections.remove(connection)
 
-        # TODO: remove freed up node dependencies
+        # If sink node has no inputs connected to source node outputs then remove node dependency
+        if not any(input_port.connection.source.node == source for input_port in sink.node.inputs):
+            self._node_dependencies[sink.node].remove(source.node)
 
     def execute(self, synchrolang_expression: str) -> Node | Port | Connection | lark.Token:
         tree = synchrolang.parser.parse(synchrolang_expression)
@@ -138,7 +137,7 @@ class Synchrotron:
         node_graph = TopologicalSorter(self._node_dependencies)
         for node in node_graph.static_order():
             node.render(render_context)
-            for output in node.outputs.values():
+            for output in node.outputs:
                 for connection in output.connections:
                     connection.sink.buffer = connection.source.buffer
 
