@@ -4,6 +4,8 @@ import abc
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, get_type_hints
 
+import numpy as np
+
 if TYPE_CHECKING:
     from collections.abc import ValuesView
 
@@ -14,7 +16,7 @@ class Port:
     def __init__(self, node: Node, name: str) -> None:
         self.node = node
         self.name = name
-        self.buffer: SignalBuffer | None = None
+        self.buffer: SignalBuffer = np.zeros(shape=1, dtype=np.float32)
 
     @property
     def class_name(self) -> str:
@@ -33,9 +35,9 @@ class Input(Port):
         super().__init__(node=node, name=name)
         self.connection: Connection | None = None
 
-    def read(self) -> SignalBuffer:
-        if self.buffer is None:
-            raise RuntimeError('input buffer cannot be read from as it is empty')
+    def read(self, render_context: RenderContext) -> SignalBuffer:
+        if self.connection is None:
+            self.buffer = np.zeros(shape=render_context.buffer_size, dtype=np.float32)
         return self.buffer
 
 

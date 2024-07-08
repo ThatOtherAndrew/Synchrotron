@@ -28,14 +28,16 @@ class UniformRandomNode(Node):
         self.rng = np.random.default_rng()
 
     def render(self, ctx: RenderContext) -> None:
-        low = self.min.read()[0]
-        high = self.max.read()[0]
+        low = self.min.read(ctx)[0]
+        high = self.max.read(ctx)[0]
         self.out.write(self.rng.uniform(low=low, high=high, size=ctx.buffer_size).astype(np.float32))
 
 
 class DebugNode(Node):
     input: Input
 
-    def render(self, _: RenderContext) -> None:
-        buffer = self.input.read()
+    def render(self, ctx: RenderContext) -> None:
+        if self.input.connection is None:
+            return
+        buffer = self.input.read(ctx)
         print(buffer)

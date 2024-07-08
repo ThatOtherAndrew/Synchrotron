@@ -27,7 +27,7 @@ class SineNode(Node):
         super().__init__(name=name)
 
     def render(self, ctx: RenderContext) -> None:
-        frequency = self.frequency.read()[0]
+        frequency = self.frequency.read(ctx)[0]
         sine_window = np.linspace(
             0,
             2 * np.pi * frequency * ctx.buffer_size / ctx.sample_rate,
@@ -63,9 +63,9 @@ class PlaybackNode(Node):
         self.playback_queue.task_done()
         return buffer, pyaudio.paContinue
 
-    def render(self, _: RenderContext) -> None:
-        left_buffer = self.left.read()
-        right_buffer = self.right.read()
+    def render(self, ctx: RenderContext) -> None:
+        left_buffer = self.left.read(ctx)
+        right_buffer = self.right.read(ctx)
 
         stereo_buffer = np.empty(shape=left_buffer.size + right_buffer.size, dtype=np.float32)
         stereo_buffer[0::2] = left_buffer

@@ -1,6 +1,7 @@
 #output_log {
     height: 1fr;
     border: round grey;
+    padding-left: 1;
 }
 
 #command_input {

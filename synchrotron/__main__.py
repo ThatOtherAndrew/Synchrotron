@@ -11,12 +11,11 @@ import synchrolang
 
 from . import nodes
 from .console.app import Console
+from .nodes import Node, Port
 from .nodes.base import Connection, Input, Output, RenderContext
 
 if TYPE_CHECKING:
     from queue import Queue
-
-    from .nodes import Node, Port
 
 
 @lark.v_args(inline=True)
@@ -48,6 +47,41 @@ class SynchrolangTransformer(lark.Transformer):
 
     def connection(self, source: Output, sink: Input) -> Connection:
         return self.synchrotron.get_connection(source, sink, return_disconnected=True)
+
+    def link(self, connection: Connection) -> Connection:
+        return self.synchrotron.add_connection(connection.source, connection.sink)
+
+    def unlink(self, target: Node | Port | Connection) -> str:
+        ports: list[Port] = []
+        connections = []
+        unlinks = 0
+
+        if isinstance(target, Node):
+            ports.extend(target.inputs)
+            ports.extend(target.outputs)
+        elif isinstance(target, Port):
+            ports.append(target)
+        elif isinstance(target, Connection):
+            connections.append(target)
+        else:
+            raise TypeError(f'invalid target to unlink: expected Node | Port | Connection, got {type(target)}')
+
+        for port in ports:
+            if isinstance(port, Input):
+                if port.connection is not None:
+                    connections.append(port.connection)
+            elif isinstance(port, Output):
+                connections.extend(port.connections)
+
+        for connection in connections:
+            if self.synchrotron.get_connection(connection.source, connection.sink).is_connected:
+                self.synchrotron.remove_connection(connection.source, connection.sink)
+                unlinks += 1
+
+        return f'{unlinks} connection{"s" if unlinks != 1 else ""} unlinked'
+
+    def remove(self, node: Node) -> Node:
+        return self.synchrotron.remove_node(node.name)
 
 
 class Synchrotron:
@@ -82,6 +116,22 @@ class Synchrotron:
         self._nodes.append(node)
         self._node_dependencies[node] = set()
 
+    def remove_node(self, node_name: str) -> Node:
+        node = self.get_node(node_name)
+
+        # Detatch node from graph to prepare for removal
+        for input_port in node.inputs:
+            if input_port.connection is not None:
+                self.remove_connection(input_port.connection.source, input_port)
+        for output_port in node.outputs:
+            for connection in output_port.connections:
+                self.remove_connection(output_port, connection.sink)
+
+        self._nodes.remove(node)
+        self._node_dependencies.pop(node, None)
+
+        return node
+
     def get_connection(self, source: Output, sink: Input, return_disconnected: bool = False) -> Connection:
         for connection in self._connections:
             if connection.source == source and connection.sink == sink:
@@ -91,17 +141,18 @@ class Synchrotron:
             return Connection(source, sink)
         raise ValueError(f'connection {source.instance_name} -> {sink.instance_name} does not exist')
 
-    def add_connection(self, source: Output, sink: Input) -> None:
+    def add_connection(self, source: Output, sink: Input) -> Connection:
         connection = self.get_connection(source, sink, return_disconnected=True)
         if connection.is_connected:
-            return
+            return connection
 
         connection.is_connected = True
         source.connections.append(connection)
         sink.connection = connection
         self._connections.append(connection)
-
         self._node_dependencies[sink.node].add(source.node)
+
+        return connection
 
     def remove_connection(self, source: Output, sink: Input) -> None:
         try:
@@ -115,7 +166,11 @@ class Synchrotron:
         self._connections.remove(connection)
 
         # If sink node has no inputs connected to source node outputs then remove node dependency
-        if not any(input_port.connection.source.node == source for input_port in sink.node.inputs):
+        if not any(
+            input_port.connection.source.node == source
+            for input_port in sink.node.inputs
+            if input_port.connection is not None
+        ):
             self._node_dependencies[sink.node].remove(source.node)
 
     def execute(self, synchrolang_expression: str) -> Node | Port | Connection | lark.Token:
@@ -173,8 +228,6 @@ def init_nodes(synchrotron: Synchrotron) -> None:
     synchrotron.add_connection(low.out, modulator.min)
     synchrotron.add_connection(high.out, modulator.max)
     synchrotron.add_connection(modulator.out, source.frequency)
-    synchrotron.add_connection(source.out, sink.left)
-    synchrotron.add_connection(source.out, sink.right)
 
 
 if __name__ == '__main__':

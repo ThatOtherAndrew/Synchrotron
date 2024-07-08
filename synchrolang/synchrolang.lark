@@ -13,7 +13,7 @@ connection: output "->" input
 
 command: ("link" | "connect" | "attach") connection                       -> link
        | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink
-       | ("delete" | "remove") node                                       -> delete
+       | ("remove" | "delete") node                                       -> remove
 
 ?expression: [node | port | connection | command]
 
