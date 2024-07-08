@@ -167,7 +167,7 @@ class Synchrotron:
 
         # If sink node has no inputs connected to source node outputs then remove node dependency
         if not any(
-            input_port.connection.source.node == source
+            input_port.connection.source.node == source.node
             for input_port in sink.node.inputs
             if input_port.connection is not None
         ):
