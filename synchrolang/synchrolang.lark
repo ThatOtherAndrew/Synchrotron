@@ -1,12 +1,22 @@
+%import common.DIGIT
+%import common.LETTER
 %import common.CNAME
+%import python.closed_pattern
 
 %import common.WS
 %ignore WS
 
-WILDCARD: "*"
 
-node: CNAME
-port: node "." (CNAME | WILDCARD)
+UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
+LOWERCASE_NAME: "a".."z" ("_" | LETTER | DIGIT)*
+
+node_class: UPPERCASE_NAME
+arguments: closed_pattern*
+keyword_arguments: (CNAME "=" closed_pattern)*
+node_init: node_class "(" arguments keyword_arguments ")"
+
+node: LOWERCASE_NAME
+port: node "." CNAME
 input: port
 output: port
 connection: output "->" input
@@ -15,6 +25,6 @@ command: ("link" | "connect" | "attach") connection                       -> lin
        | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink
        | ("remove" | "delete") node                                       -> remove
 
-?expression: [node | port | connection | command]
+?expression: [node_class | node_init | node | port | connection | command]
 
 ?start: expression

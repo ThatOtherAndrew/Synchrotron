@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from types import NoneType
 from typing import TYPE_CHECKING
 
 import lark
@@ -24,8 +25,16 @@ class SynchrolangTransformer(lark.Transformer):
         super().__init__()
         self.synchrotron = synchrotron
 
-    def node(self, name: lark.Token) -> Node:
-        return self.synchrotron.get_node(name)
+    @staticmethod
+    def node_class(class_name: lark.Token) -> type[Node]:
+        node = getattr(nodes, class_name, NoneType)
+        if not issubclass(node, Node):
+            raise ValueError(f"node class '{class_name}' not found")
+
+        return node
+
+    def node(self, node_name: lark.Token) -> Node:
+        return self.synchrotron.get_node(node_name)
 
     @staticmethod
     def port(node: Node, port_name: lark.Token) -> Port:

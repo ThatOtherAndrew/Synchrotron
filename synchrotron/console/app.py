@@ -8,7 +8,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from textual import widgets
 from textual.app import App, ComposeResult
-from textual.binding import BindingType, Binding
+from textual.binding import Binding
 
 if TYPE_CHECKING:
     from ..__main__ import Synchrotron
@@ -54,7 +54,7 @@ class Console(App):
     TITLE = 'Synchrotron'
     SUB_TITLE = 'Console'
     CSS_PATH = 'app.tcss'
-    BINDINGS: ClassVar[list[BindingType]] = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding('ctrl+c', action='quit', description='Quit', key_display='Ctrl-C', priority=True),
         Binding('ctrl+k', action='command_palette', description='Command Palette', key_display='Ctrl-K', priority=True),
     ]
