@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .base import Input, Node, Output, RenderContext
 
+if TYPE_CHECKING:
+    from ..__main__ import Synchrotron
+
 
 class ConstantNode(Node):
     out: Output
 
-    def __init__(self, name: str, value: Any) -> None:
-        super().__init__(name=name)
+    def __init__(self, synchrotron: Synchrotron, name: str, value: float) -> None:
+        super().__init__(synchrotron, name)
         self.value = value
 
     def render(self, ctx: RenderContext) -> None:
@@ -23,8 +26,8 @@ class UniformRandomNode(Node):
     max: Input
     out: Output
 
-    def __init__(self, name: str) -> None:
-        super().__init__(name=name)
+    def __init__(self, synchrotron: Synchrotron, name: str) -> None:
+        super().__init__(synchrotron, name)
         self.rng = np.random.default_rng()
 
     def render(self, ctx: RenderContext) -> None:

@@ -9,6 +9,7 @@ import numpy as np
 if TYPE_CHECKING:
     from collections.abc import ValuesView
 
+    from ..__main__ import Synchrotron
     from ..types import SignalBuffer
 
 
@@ -67,7 +68,8 @@ class Connection:
 
 
 class Node(abc.ABC):
-    def __init__(self, name: str) -> None:
+    def __init__(self, synchrotron: Synchrotron, name: str) -> None:
+        self.synchrotron = synchrotron
         self.name = name
         self._inputs: dict[str, Input] = {}
         self._outputs: dict[str, Output] = {}

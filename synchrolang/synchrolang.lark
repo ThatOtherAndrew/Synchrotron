@@ -1,7 +1,10 @@
 %import common.DIGIT
+%import common.SIGNED_INT
+%import common.SIGNED_FLOAT
+%import common.ESCAPED_STRING
 %import common.LETTER
 %import common.CNAME
-%import python.closed_pattern
+%import python.atom
 
 %import common.WS
 %ignore WS
@@ -10,10 +13,17 @@
 UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
 LOWERCASE_NAME: "a".."z" ("_" | LETTER | DIGIT)*
 
+?value: ESCAPED_STRING             -> string
+      | SIGNED_INT                 -> int
+      | SIGNED_FLOAT               -> float
+      | "[" (value ","?)* "]"      -> list
+      | ("True"i | "False"i)       -> bool
+      | ("None"i | "null"i | "_")  -> none
+
 node_class: UPPERCASE_NAME
-arguments: closed_pattern*
-keyword_arguments: (CNAME "=" closed_pattern)*
-node_init: node_class "(" arguments keyword_arguments ")"
+arguments: (value ","?)*
+keyword_arguments: (CNAME "=" value ","?)*
+node_init: LOWERCASE_NAME "=" node_class "(" arguments keyword_arguments ")"
 
 node: LOWERCASE_NAME
 port: node "." CNAME
@@ -21,10 +31,11 @@ input: port
 output: port
 connection: output "->" input
 
-command: ("link" | "connect" | "attach") connection                       -> link
+command: ["create" | "new" | "let"] node_init                             -> create
+       | ("link" | "connect" | "attach") connection                       -> link
        | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink
        | ("remove" | "delete") node                                       -> remove
 
-?expression: [node_class | node_init | node | port | connection | command]
+?expression: [node_class | node | port | connection | command]
 
 ?start: expression

@@ -25,12 +25,45 @@ class SynchrolangTransformer(lark.Transformer):
         super().__init__()
         self.synchrotron = synchrotron
 
+    string = str
+    int = int
+    float = float
+    list = list
+
+    @staticmethod
+    def bool(token: lark.Token) -> bool:
+        return token.lower() == 'true'
+
+    @staticmethod
+    def none(_: lark.Token) -> None:
+        return None
+
     @staticmethod
     def node_class(class_name: lark.Token) -> type[Node]:
         node = getattr(nodes, class_name, NoneType)
         if not issubclass(node, Node):
             raise ValueError(f"node class '{class_name}' not found")
 
+        return node
+
+    @staticmethod
+    def arguments(*args: synchrolang.Value) -> list[synchrolang.Value]:
+        return list(args)
+
+    @staticmethod
+    def keyword_arguments(*args: lark.Token | synchrolang.Value) -> dict[str, synchrolang.Value]:
+        return dict(zip((key.value for key in args[0::2]), args[1::2]))
+
+    def node_init(
+        self,
+        name: lark.Token,
+        cls: type[Node],
+        args: list[synchrolang.Value],
+        kwargs: dict[str, synchrolang.Value],
+    ) -> Node:
+        # noinspection PyArgumentList
+        node = cls(self.synchrotron, name.value, *args, **kwargs)
+        self.synchrotron.add_node(node)
         return node
 
     def node(self, node_name: lark.Token) -> Node:
@@ -56,6 +89,10 @@ class SynchrolangTransformer(lark.Transformer):
 
     def connection(self, source: Output, sink: Input) -> Connection:
         return self.synchrotron.get_connection(source, sink, return_disconnected=True)
+
+    @staticmethod
+    def create(node: Node) -> Node:
+        return node
 
     def link(self, connection: Connection) -> Connection:
         return self.synchrotron.add_connection(connection.source, connection.sink)
@@ -99,6 +136,7 @@ class Synchrotron:
         self.global_clock = 0
         self.stop_event = threading.Event()
         self.synchrolang_transformer = SynchrolangTransformer(self)
+        self.synchrolang_parser = synchrolang.parser()
 
         # It'd be cool to have a dynamic sample rate and buffer size, but it would be such an implementation headache
         self.sample_rate = sample_rate
@@ -183,7 +221,7 @@ class Synchrotron:
             self._node_dependencies[sink.node].remove(source.node)
 
     def execute(self, synchrolang_expression: str) -> Node | Port | Connection | lark.Token:
-        tree = synchrolang.parser.parse(synchrolang_expression)
+        tree = self.synchrolang_parser.parse(synchrolang_expression)
         return self.synchrolang_transformer.transform(tree)
 
     def add_output_queue(self, queue: Queue) -> None:
@@ -196,7 +234,7 @@ class Synchrotron:
         render_context = RenderContext(
             global_clock=self.global_clock,
             sample_rate=self.sample_rate,
-            buffer_size=self.buffer_size
+            buffer_size=self.buffer_size,
         )
         node_graph = TopologicalSorter(self._node_dependencies)
         for node in node_graph.static_order():
@@ -217,6 +255,7 @@ class Synchrotron:
     def stop(self) -> None:
         self.stop_event.set()
         self.pyaudio_session.terminate()
+        # TODO: fix the below monstrosity
         for queue in self._output_queues:
             try:
                 while True:
@@ -225,23 +264,8 @@ class Synchrotron:
                 pass
 
 
-def init_nodes(synchrotron: Synchrotron) -> None:
-    low = nodes.data.ConstantNode('low', 440)
-    high = nodes.data.ConstantNode('high', 880)
-    modulator = nodes.data.UniformRandomNode('modulator')
-    source = nodes.audio.SineNode('source')
-    sink = nodes.audio.PlaybackNode('sink', synchrotron)
-    for node in (low, high, modulator, source, sink):
-        synchrotron.add_node(node)
-
-    synchrotron.add_connection(low.out, modulator.min)
-    synchrotron.add_connection(high.out, modulator.max)
-    synchrotron.add_connection(modulator.out, source.frequency)
-
-
 if __name__ == '__main__':
     session = Synchrotron(buffer_size=22050)
-    init_nodes(session)
     render_thread = threading.Thread(target=session.run, name='RenderThread')
     render_thread.start()
     try:

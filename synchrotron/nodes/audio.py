@@ -23,9 +23,6 @@ class SineNode(Node):
     frequency: Input
     out: Output
 
-    def __init__(self, name: str) -> None:
-        super().__init__(name=name)
-
     def render(self, ctx: RenderContext) -> None:
         frequency = self.frequency.read(ctx)[0]
         sine_window = np.linspace(
@@ -33,7 +30,7 @@ class SineNode(Node):
             2 * np.pi * frequency * ctx.buffer_size / ctx.sample_rate,
             num=ctx.buffer_size,
             endpoint=False,
-            dtype=np.float32
+            dtype=np.float32,
         )
         self.out.write(np.sin(sine_window))
 
@@ -42,8 +39,8 @@ class PlaybackNode(Node):
     left: Input
     right: Input
 
-    def __init__(self, name: str, synchrotron: Synchrotron) -> None:
-        super().__init__(name=name)
+    def __init__(self, synchrotron: Synchrotron, name: str) -> None:
+        super().__init__(synchrotron, name)
 
         self.playback_queue = Queue()
         synchrotron.add_output_queue(self.playback_queue)

@@ -44,7 +44,7 @@ class CommandInput(widgets.Input):
                 ReprHighlighter()(str(error)),
                 title=error.__class__.__name__,
                 expand=False,
-                border_style='red'
+                border_style='red',
             )
 
         self.app.output_log.write(return_data)
