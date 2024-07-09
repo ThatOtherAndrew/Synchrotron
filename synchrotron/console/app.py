@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from lark.exceptions import VisitError
 from rich.highlighter import ReprHighlighter
@@ -10,8 +10,7 @@ from textual import widgets
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 
-if TYPE_CHECKING:
-    from ..__main__ import Synchrotron
+from synchrotron import Synchrotron
 
 
 class OutputLog(widgets.RichLog):
@@ -23,17 +22,23 @@ class OutputLog(widgets.RichLog):
         self.border_subtitle = 'Synchrotron'
 
 
-class CommandInput(widgets.Input):
+class CommandInput(widgets.TextArea):
     app: Console
+
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding('ctrl+s', action='submit', description='Run command')
+    ]
 
     # noinspection PyShadowingBuiltins
     def __init__(self, id: str) -> None:
-        super().__init__(id=id, placeholder='Send a command...')
+        super().__init__(id=id)
+        self.border_title = 'Send a command...'
         self.border_subtitle = 'Synchrolang'
 
     def action_submit(self) -> None:
-        expression = self.value
-        self.app.output_log.write('[dim]> [cyan]' + escape(expression))
+        expression = self.text
+        self.clear()
+        self.app.output_log.write('[dim]> ' + escape(expression))
 
         try:
             return_data = self.app.synchrotron.execute(expression)
@@ -50,18 +55,18 @@ class CommandInput(widgets.Input):
         self.app.output_log.write(return_data)
 
 
-class Console(App):
+class Console(App, inherit_bindings=False):
     TITLE = 'Synchrotron'
     SUB_TITLE = 'Console'
     CSS_PATH = 'app.tcss'
     BINDINGS: ClassVar[list[Binding]] = [
-        Binding('ctrl+c', action='quit', description='Quit', key_display='Ctrl-C', priority=True),
-        Binding('ctrl+k', action='command_palette', description='Command Palette', key_display='Ctrl-K', priority=True),
+        Binding('ctrl+k', action='command_palette', description='Command Palette', priority=True),
+        Binding('ctrl+c', action='quit', description='Quit', priority=True),
     ]
 
-    def __init__(self, synchrotron: Synchrotron):
+    def __init__(self):
         super().__init__()
-        self.synchrotron = synchrotron
+        self.synchrotron = Synchrotron(buffer_size=22050)
         self.output_log = OutputLog(id='output_log')
         self.command_input = CommandInput(id='command_input')
 
@@ -69,8 +74,16 @@ class Console(App):
         yield widgets.Header()
         yield self.output_log
         yield self.command_input
-        yield widgets.Footer()
+        footer = widgets.Footer()
+        footer.ctrl_to_caret = False
+        yield footer
 
     def on_ready(self) -> None:
-        self.output_log.write('[bold green]Synchrotron console successfully started')
         self.command_input.focus()
+
+        self.output_log.write('[bold cyan]Starting Synchrotron server')
+        self.synchrotron.start_server()
+
+    def action_quit(self) -> None:
+        self.synchrotron.stop_server()
+        self.exit()

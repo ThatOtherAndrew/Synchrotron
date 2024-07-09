@@ -1,142 +1,25 @@
 from __future__ import annotations
 
-import threading
-from types import NoneType
+from threading import Event, Thread
 from typing import TYPE_CHECKING
 
-import lark
-import pyaudio
 from graphlib import TopologicalSorter
+from pyaudio import PyAudio
 
-import synchrolang
-
-from . import nodes
-from .console.app import Console
-from .nodes import Node, Port
-from .nodes.base import Connection, Input, Output, RenderContext
+from . import synchrolang
+from .nodes import Connection, Input, Node, Output, Port, RenderContext
 
 if TYPE_CHECKING:
     from queue import Queue
 
 
-@lark.v_args(inline=True)
-class SynchrolangTransformer(lark.Transformer):
-    def __init__(self, synchrotron: Synchrotron) -> None:
-        super().__init__()
-        self.synchrotron = synchrotron
-
-    string = str
-    int = int
-    float = float
-    list = list
-
-    @staticmethod
-    def bool(token: lark.Token) -> bool:
-        return token.lower() == 'true'
-
-    @staticmethod
-    def none(_: lark.Token) -> None:
-        return None
-
-    @staticmethod
-    def node_class(class_name: lark.Token) -> type[Node]:
-        node = getattr(nodes, class_name, NoneType)
-        if not issubclass(node, Node):
-            raise ValueError(f"node class '{class_name}' not found")
-
-        return node
-
-    @staticmethod
-    def arguments(*args: synchrolang.Value) -> list[synchrolang.Value]:
-        return list(args)
-
-    @staticmethod
-    def keyword_arguments(*args: lark.Token | synchrolang.Value) -> dict[str, synchrolang.Value]:
-        return dict(zip((key.value for key in args[0::2]), args[1::2]))
-
-    def node_init(
-        self,
-        name: lark.Token,
-        cls: type[Node],
-        args: list[synchrolang.Value],
-        kwargs: dict[str, synchrolang.Value],
-    ) -> Node:
-        # noinspection PyArgumentList
-        node = cls(self.synchrotron, name.value, *args, **kwargs)
-        self.synchrotron.add_node(node)
-        return node
-
-    def node(self, node_name: lark.Token) -> Node:
-        return self.synchrotron.get_node(node_name)
-
-    @staticmethod
-    def port(node: Node, port_name: lark.Token) -> Port:
-        return node.get_port(port_name)
-
-    @staticmethod
-    def input(port: Port) -> Input:
-        if isinstance(port, Input):
-            return port
-
-        raise ValueError(f"'{port.instance_name}' is an output port ({port.class_name}) and cannot be used as an input")
-
-    @staticmethod
-    def output(port: Port) -> Output:
-        if isinstance(port, Output):
-            return port
-
-        raise ValueError(f"'{port.instance_name}' is an input port ({port.class_name}) and cannot be used as an output")
-
-    def connection(self, source: Output, sink: Input) -> Connection:
-        return self.synchrotron.get_connection(source, sink, return_disconnected=True)
-
-    @staticmethod
-    def create(node: Node) -> Node:
-        return node
-
-    def link(self, connection: Connection) -> Connection:
-        return self.synchrotron.add_connection(connection.source, connection.sink)
-
-    def unlink(self, target: Node | Port | Connection) -> str:
-        ports: list[Port] = []
-        connections = []
-        unlinks = 0
-
-        if isinstance(target, Node):
-            ports.extend(target.inputs)
-            ports.extend(target.outputs)
-        elif isinstance(target, Port):
-            ports.append(target)
-        elif isinstance(target, Connection):
-            connections.append(target)
-        else:
-            raise TypeError(f'invalid target to unlink: expected Node | Port | Connection, got {type(target)}')
-
-        for port in ports:
-            if isinstance(port, Input):
-                if port.connection is not None:
-                    connections.append(port.connection)
-            elif isinstance(port, Output):
-                connections.extend(port.connections)
-
-        for connection in connections:
-            if self.synchrotron.get_connection(connection.source, connection.sink).is_connected:
-                self.synchrotron.remove_connection(connection.source, connection.sink)
-                unlinks += 1
-
-        return f'{unlinks} connection{"s" if unlinks != 1 else ""} unlinked'
-
-    def remove(self, node: Node) -> Node:
-        return self.synchrotron.remove_node(node.name)
-
-
 class Synchrotron:
     def __init__(self, sample_rate: int = 44100, buffer_size: int = 256) -> None:
-        self.pyaudio_session = pyaudio.PyAudio()
+        self.pyaudio_session = PyAudio()
         self.global_clock = 0
-        self.stop_event = threading.Event()
-        self.synchrolang_transformer = SynchrolangTransformer(self)
-        self.synchrolang_parser = synchrolang.parser()
+        self.stop_event = Event()
+        self.synchrolang_parser = synchrolang.SynchrolangParser()
+        self.synchrolang_transformer = synchrolang.SynchrolangTransformer(self)
 
         # It'd be cool to have a dynamic sample rate and buffer size, but it would be such an implementation headache
         self.sample_rate = sample_rate
@@ -220,7 +103,7 @@ class Synchrotron:
         ):
             self._node_dependencies[sink.node].remove(source.node)
 
-    def execute(self, synchrolang_expression: str) -> Node | Port | Connection | lark.Token:
+    def execute(self, synchrolang_expression: str) -> Node | Port | Connection:
         tree = self.synchrolang_parser.parse(synchrolang_expression)
         return self.synchrolang_transformer.transform(tree)
 
@@ -248,11 +131,16 @@ class Synchrotron:
         self.global_clock += 1
         return True
 
-    def run(self) -> None:
-        while self.render_graph():
-            pass
+    def start_server(self) -> Thread:
+        def render_loop() -> None:
+            while self.render_graph():
+                pass
 
-    def stop(self) -> None:
+        render_thread = Thread(target=render_loop, name='RenderThread')
+        render_thread.start()
+        return render_thread
+
+    def stop_server(self) -> None:
         self.stop_event.set()
         self.pyaudio_session.terminate()
         # TODO: fix the below monstrosity
@@ -262,13 +150,3 @@ class Synchrotron:
                     queue.task_done()
             except ValueError:  # noqa: PERF203
                 pass
-
-
-if __name__ == '__main__':
-    session = Synchrotron(buffer_size=22050)
-    render_thread = threading.Thread(target=session.run, name='RenderThread')
-    render_thread.start()
-    try:
-        Console(session).run()
-    finally:
-        session.stop()

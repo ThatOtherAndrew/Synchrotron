@@ -7,7 +7,7 @@ import numpy as np
 from .base import Input, Node, Output, RenderContext
 
 if TYPE_CHECKING:
-    from ..__main__ import Synchrotron
+    from synchrotron import Synchrotron
 
 
 class ConstantNode(Node):

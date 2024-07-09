@@ -8,6 +8,7 @@
 }
 
 #command_input {
+    height: auto;
     border: double grey;
     padding: 0 1;
     &:focus {

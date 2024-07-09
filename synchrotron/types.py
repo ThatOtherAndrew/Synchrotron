@@ -1,6 +1,6 @@
 from typing import TypeAlias
 
-import numpy as np
+from numpy import float32
 from numpy.typing import NDArray
 
-SignalBuffer: TypeAlias = NDArray[np.float32]
+SignalBuffer: TypeAlias = NDArray[float32]
