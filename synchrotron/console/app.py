@@ -59,6 +59,7 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         Binding('ctrl+a', 'select_all', 'select all', show=False),
 
         # Deletion
+        # TODO: fix backspace combos not working
         Binding('backspace', 'delete_left', 'delete left', show=False),
         Binding('ctrl+backspace', 'delete_word_left', 'delete left to start of word', show=False),
         Binding('delete', 'delete_right', 'delete right', show=False),
@@ -120,8 +121,9 @@ class Console(App, inherit_bindings=False):
     TITLE = 'Synchrotron'
     SUB_TITLE = 'Console'
     CSS_PATH = 'app.tcss'
+    # TODO: fix the below bindings not clickable in the footer
     BINDINGS: ClassVar[list[Binding]] = [
-        Binding('ctrl+k', action='command_palette', description='Command Palette', priority=True),
+        Binding('ctrl+k', action='command_palette', description='Command palette', priority=True),
         Binding('ctrl+c', action='quit', description='Quit', priority=True),
     ]
 
@@ -141,10 +143,18 @@ class Console(App, inherit_bindings=False):
 
     def on_ready(self) -> None:
         self.command_input.focus()
+        for line in '''
+            freq = ConstantNode(440)
+            sine = SineNode()
+            out  = PlaybackNode()
 
-        self.output_log.write('[bold cyan]Starting Synchrotron server')
-        self.synchrotron.start_server()
+            link freq.out -> sine.frequency
+            link sine.out -> out.left
+            link sine.out -> out.right
+        '''.splitlines():
+            self.synchrotron.execute(line)
 
     def action_quit(self) -> None:
-        self.synchrotron.stop_server()
+        self.synchrotron.stop_rendering()
+        self.synchrotron.pyaudio_session.terminate()
         self.exit()

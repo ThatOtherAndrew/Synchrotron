@@ -13,29 +13,40 @@
 UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
 LOWERCASE_NAME: "a".."z" ("_" | LETTER | DIGIT)*
 
-?value: ESCAPED_STRING             -> string
-      | SIGNED_INT                 -> int
+// Literal values
+BOOLEAN: "True"i | "False"i
+
+?value: SIGNED_INT                 -> int
       | SIGNED_FLOAT               -> float
+      | ESCAPED_STRING             -> string
+      | BOOLEAN                    -> bool
       | "[" (value ","?)* "]"      -> list
-      | ("True"i | "False"i)       -> bool
       | ("None"i | "null"i | "_")  -> none
 
+// Node instantiation
 node_class: UPPERCASE_NAME
 arguments: (value ","?)*
 keyword_arguments: (CNAME "=" value ","?)*
 node_init: LOWERCASE_NAME "=" node_class "(" arguments keyword_arguments ")"
 
+// Graph elements
 node: LOWERCASE_NAME
 port: node "." CNAME
 input: port
 output: port
 connection: output "->" input
 
-command: ["create" | "new" | "let"] node_init                             -> create
-       | ("link" | "connect" | "attach") connection                       -> link
-       | ("unlink" | "disconnect" | "detach") (node | port | connection)  -> unlink
-       | ("remove" | "delete") node                                       -> remove
+?element: (node | port | connection)
 
-?expression: [node_class | node | port | connection | command]
+// Commands
+?expression: [value | node_class | node | port | connection]
 
-?start: expression
+command: "start"i                                             -> start
+       | "stop"i                                              -> stop
+       | ["create"i | "new"i | "let"i]            node_init   -> create
+       | ("link"i | "connect"i | "attach"i)       connection  -> link
+       | ("unlink"i | "disconnect"i | "detach"i)  element     -> unlink
+       | ("remove"i | "delete"i)                  node        -> remove
+       | ["eval"i | "get"i | "query"i]            expression  -> eval
+
+?start: command

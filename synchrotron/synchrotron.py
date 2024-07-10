@@ -18,6 +18,7 @@ class Synchrotron:
         self.pyaudio_session = PyAudio()
         self.global_clock = 0
         self.stop_event = Event()
+        self.render_thread: Thread | None = None
         self.synchrolang_parser = synchrolang.SynchrolangParser()
         self.synchrolang_transformer = synchrolang.SynchrolangTransformer(self)
 
@@ -110,10 +111,7 @@ class Synchrotron:
     def add_output_queue(self, queue: Queue) -> None:
         self._output_queues.append(queue)
 
-    def render_graph(self) -> bool:
-        if self.stop_event.is_set():
-            return False
-
+    def render_graph(self) -> None:
         render_context = RenderContext(
             global_clock=self.global_clock,
             sample_rate=self.sample_rate,
@@ -129,24 +127,20 @@ class Synchrotron:
         for queue in self._output_queues:
             queue.join()
         self.global_clock += 1
-        return True
 
-    def start_server(self) -> Thread:
+    def start_rendering(self) -> Thread:
+        if self.render_thread is not None and self.render_thread.is_alive():
+            raise RuntimeError('render thread is already running')
+        self.stop_event.clear()
+
         def render_loop() -> None:
-            while self.render_graph():
-                pass
+            while not self.stop_event.is_set():
+                self.render_graph()
 
-        render_thread = Thread(target=render_loop, name='RenderThread')
-        render_thread.start()
-        return render_thread
+        self.render_thread = Thread(target=render_loop, name='RenderThread')
+        self.render_thread.start()
+        return self.render_thread
 
-    def stop_server(self) -> None:
+    def stop_rendering(self) -> None:
         self.stop_event.set()
-        self.pyaudio_session.terminate()
-        # TODO: fix the below monstrosity
-        for queue in self._output_queues:
-            try:
-                while True:
-                    queue.task_done()
-            except ValueError:  # noqa: PERF203
-                pass
+        self.render_thread.join()

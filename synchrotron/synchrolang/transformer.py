@@ -9,9 +9,12 @@ from synchrotron import nodes
 from synchrotron.nodes import Connection, Input, Node, Output, Port
 
 if TYPE_CHECKING:
+    from threading import Thread
+
     from synchrotron import Synchrotron
 
 Value: TypeAlias = str | int | float | list['Value'] | bool | None
+Expression: TypeAlias = Value | type[Node] | Node | Port | Connection
 
 
 @lark.v_args(inline=True)
@@ -20,18 +23,23 @@ class SynchrolangTransformer(lark.Transformer):
         super().__init__()
         self.synchrotron = synchrotron
 
-    string = str
+    # Literal values
+
     int = int
     float = float
-    list = list
+    string = str
 
     @staticmethod
     def bool(token: lark.Token) -> bool:
         return token.lower() == 'true'
 
     @staticmethod
-    def none(_: lark.Token) -> None:
-        return None
+    def list(*elements: Value) -> list[Value]:
+        return list(elements)
+
+    none = NoneType
+
+    # Node instantiation
 
     @staticmethod
     def node_class(class_name: lark.Token) -> type[Node]:
@@ -61,6 +69,8 @@ class SynchrolangTransformer(lark.Transformer):
         self.synchrotron.add_node(node)
         return node
 
+    # Graph elements
+
     def node(self, node_name: lark.Token) -> Node:
         return self.synchrotron.get_node(node_name)
 
@@ -84,6 +94,14 @@ class SynchrolangTransformer(lark.Transformer):
 
     def connection(self, source: Output, sink: Input) -> Connection:
         return self.synchrotron.get_connection(source, sink, return_disconnected=True)
+
+    # Commands
+
+    def start(self) -> Thread:
+        return self.synchrotron.start_rendering()
+
+    def stop(self) -> None:
+        self.synchrotron.stop_rendering()
 
     @staticmethod
     def create(node: Node) -> Node:
@@ -123,3 +141,7 @@ class SynchrolangTransformer(lark.Transformer):
 
     def remove(self, node: Node) -> Node:
         return self.synchrotron.remove_node(node.name)
+
+    @staticmethod
+    def eval(item: Expression) -> Expression:
+        return item
