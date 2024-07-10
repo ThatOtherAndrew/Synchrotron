@@ -6,7 +6,7 @@ from lark.exceptions import VisitError
 from rich.highlighter import ReprHighlighter
 from rich.markup import escape
 from rich.panel import Panel
-from textual import widgets
+from textual import events, widgets
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 
@@ -22,11 +22,54 @@ class OutputLog(widgets.RichLog):
         self.border_subtitle = 'Synchrotron'
 
 
-class CommandInput(widgets.TextArea):
+class CommandInput(widgets.TextArea, inherit_bindings=False):
     app: Console
 
     BINDINGS: ClassVar[list[Binding]] = [
-        Binding('ctrl+s', action='submit', description='Run command')
+        Binding('enter', action='submit', description='Run command'),
+        Binding('ctrl+j', action='newline', description='new line', show=False),
+
+        # The below is an almost-copy of TextArea.BINDINGS but with (imo) more sensible defaults.
+
+        # Cursor movement
+        Binding('up', 'cursor_up', 'cursor up', show=False),
+        Binding('down', 'cursor_down', 'cursor down', show=False),
+        Binding('left', 'cursor_left', 'cursor left', show=False),
+        Binding('right', 'cursor_right', 'cursor right', show=False),
+        Binding('ctrl+left', 'cursor_word_left', 'cursor word left', show=False),
+        Binding('ctrl+right', 'cursor_word_right', 'cursor word right', show=False),
+        Binding('home', 'cursor_line_start', 'cursor line start', show=False),
+        Binding('end', 'cursor_line_end', 'cursor line end', show=False),
+        Binding('pageup', 'cursor_page_up', 'cursor page up', show=False),
+        Binding('pagedown', 'cursor_page_down', 'cursor page down', show=False),
+
+        # Making selections (generally holding the shift key and moving cursor)
+        Binding('shift+up', 'cursor_up(True)', 'cursor up select', show=False),
+        Binding('shift+down', 'cursor_down(True)', 'cursor down select', show=False),
+        Binding('shift+left', 'cursor_left(True)', 'cursor left select', show=False),
+        Binding('shift+right', 'cursor_right(True)', 'cursor right select', show=False),
+        Binding('shift+ctrl+left', 'cursor_word_left(True)', 'cursor left word select', show=False),
+        Binding('shift+ctrl+right', 'cursor_word_right(True)', 'cursor right word select', show=False),
+        Binding('shift+home', 'cursor_line_start(True)', 'cursor line start select', show=False),
+        Binding('shift+end', 'cursor_line_end(True)', 'cursor line end select', show=False),
+
+        # Shortcut ways of making selections
+        Binding('ctrl+w', 'select_word', 'select word', show=False),
+        Binding('ctrl+l', 'select_line', 'select line', show=False),
+        Binding('ctrl+a', 'select_all', 'select all', show=False),
+
+        # Deletion
+        Binding('backspace', 'delete_left', 'delete left', show=False),
+        Binding('ctrl+backspace', 'delete_word_left', 'delete left to start of word', show=False),
+        Binding('delete', 'delete_right', 'delete right', show=False),
+        Binding('ctrl+delete', 'delete_word_right', 'delete right to start of word', show=False),
+        Binding('ctrl+y', 'delete_line', 'delete line', show=False),
+        Binding('ctrl+shift+backspace', 'delete_to_start_of_line', 'delete to line start', show=False),
+        Binding('ctrl+shift+delete', 'delete_to_end_of_line_or_delete_line', 'delete to line end', show=False),
+
+        # Undo and redo
+        Binding('ctrl+z', 'undo', 'Undo', show=False),
+        Binding('ctrl+shift+z', 'redo', 'Redo', show=False),
     ]
 
     # noinspection PyShadowingBuiltins
@@ -35,10 +78,28 @@ class CommandInput(widgets.TextArea):
         self.border_title = 'Send a command...'
         self.border_subtitle = 'Synchrolang'
 
+    def on_key(self, event: events.Key) -> None:
+        if event.key == 'enter':
+            event.stop()
+            event.prevent_default()
+            self.action_submit()
+
+    def action_newline(self) -> None:
+        start, end = self.selection
+        self._replace_via_keyboard('\n', start, end)
+
+    def action_copy(self) -> None:
+        # TODO
+        ...
+
+    def action_cut(self) -> None:
+        # TODO
+        ...
+
     def action_submit(self) -> None:
         expression = self.text
         self.clear()
-        self.app.output_log.write('[dim]> ' + escape(expression))
+        self.app.output_log.write('[dim]> ' + escape(expression.replace('\n', '\n│ ')))
 
         try:
             return_data = self.app.synchrotron.execute(expression)
