@@ -34,7 +34,7 @@ class SynchrolangTransformer(lark.Transformer):
         return token.lower() == 'true'
 
     @staticmethod
-    def list(*elements: Value) -> list[Value]:
+    def array(*elements: Value) -> list[Value]:
         return list(elements)
 
     none = NoneType

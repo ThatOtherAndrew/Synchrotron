@@ -20,7 +20,7 @@ BOOLEAN: "True"i | "False"i
       | SIGNED_FLOAT               -> float
       | ESCAPED_STRING             -> string
       | BOOLEAN                    -> bool
-      | "[" (value ","?)* "]"      -> list
+      | "[" (value ","?)* "]"      -> array
       | ("None"i | "null"i | "_")  -> none
 
 // Node instantiation
