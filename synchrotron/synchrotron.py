@@ -104,8 +104,8 @@ class Synchrotron:
         ):
             self._node_dependencies[sink.node].remove(source.node)
 
-    def execute(self, synchrolang_expression: str) -> Node | Port | Connection:
-        tree = self.synchrolang_parser.parse(synchrolang_expression)
+    def execute(self, script: str) -> Node | Port | Connection:
+        tree = self.synchrolang_parser.parse(script)
         return self.synchrolang_transformer.transform(tree)
 
     def add_output_queue(self, queue: Queue) -> None:
@@ -143,4 +143,5 @@ class Synchrotron:
 
     def stop_rendering(self) -> None:
         self.stop_event.set()
-        self.render_thread.join()
+        if self.render_thread is not None:
+            self.render_thread.join()

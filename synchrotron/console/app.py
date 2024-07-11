@@ -103,7 +103,8 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         self.app.output_log.write('[dim]> ' + escape(expression.replace('\n', '\n│ ')))
 
         try:
-            return_data = self.app.synchrotron.execute(expression)
+            # return_data = self.app.synchrotron.execute(expression
+            return_data = self.app.synchrotron.synchrolang_parser.parse(expression)
         except Exception as error:
             if isinstance(error, VisitError):
                 error = error.orig_exc
@@ -143,7 +144,7 @@ class Console(App, inherit_bindings=False):
 
     def on_ready(self) -> None:
         self.command_input.focus()
-        for line in '''
+        self.synchrotron.execute('''
             freq = ConstantNode(440)
             sine = SineNode()
             out  = PlaybackNode()
@@ -151,8 +152,7 @@ class Console(App, inherit_bindings=False):
             link freq.out -> sine.frequency
             link sine.out -> out.left
             link sine.out -> out.right
-        '''.splitlines():
-            self.synchrotron.execute(line)
+        ''')
 
     def action_quit(self) -> None:
         self.synchrotron.stop_rendering()
