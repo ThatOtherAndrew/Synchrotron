@@ -103,18 +103,23 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         self.app.output_log.write('[dim]> ' + escape(script.replace('\n', '\n│ ')))
 
         try:
+            if self.app.debug:
+                self.app.output_log.write(self.app.synchrotron.synchrolang_parser.parse(script))
             return_data = self.app.synchrotron.execute(script)
+
         except Exception as error:
             if isinstance(error, VisitError):
                 error = error.orig_exc
-            return_data = Panel(
+            self.app.output_log.write(Panel(
                 ReprHighlighter()(str(error)),
                 title=error.__class__.__name__,
                 expand=False,
                 border_style='red',
-            )
+            ))
+            return
 
-        self.app.output_log.write(return_data)
+        for return_value in return_data:
+            self.app.output_log.write(return_value)
 
 
 class Console(App, inherit_bindings=False):

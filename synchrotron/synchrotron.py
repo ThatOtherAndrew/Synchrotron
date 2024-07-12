@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from threading import Event, Thread
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from graphlib import TopologicalSorter
 from pyaudio import PyAudio
 
 from . import synchrolang
-from .nodes import Connection, Input, Node, Output, Port, RenderContext
+from .nodes import Connection, Input, Node, Output, RenderContext
 
 if TYPE_CHECKING:
     from queue import Queue
@@ -26,25 +26,25 @@ class Synchrotron:
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
 
-        self._nodes: list[Node] = []
+        self.nodes: list[Node] = []
         self._node_dependencies: dict[Node, set[Node]] = {}
         self._connections: list[Connection] = []
         self._output_queues: list[Queue] = []
 
     def get_node(self, node_name: str) -> Node:
         try:
-            return next(node for node in self._nodes if node.name == node_name)
+            return next(node for node in self.nodes if node.name == node_name)
         except StopIteration:
             raise ValueError(f"node '{node_name}' not found") from None
 
     def add_node(self, node: Node) -> None:
-        if node in self._nodes:
+        if node in self.nodes:
             raise ValueError(f'node {node!r} already added to graph')
-        name_collision = next((graph_node for graph_node in self._nodes if graph_node.name == node.name), None)
+        name_collision = next((graph_node for graph_node in self.nodes if graph_node.name == node.name), None)
         if name_collision is not None:
             raise ValueError(f'node {node!r} has a duplicate name with node {name_collision.name}')
 
-        self._nodes.append(node)
+        self.nodes.append(node)
         self._node_dependencies[node] = set()
 
     def remove_node(self, node_name: str) -> Node:
@@ -58,7 +58,7 @@ class Synchrotron:
             for connection in output_port.connections:
                 self.remove_connection(output_port, connection.sink)
 
-        self._nodes.remove(node)
+        self.nodes.remove(node)
         self._node_dependencies.pop(node, None)
 
         return node
@@ -104,7 +104,7 @@ class Synchrotron:
         ):
             self._node_dependencies[sink.node].remove(source.node)
 
-    def execute(self, script: str) -> Node | Port | Connection:
+    def execute(self, script: str) -> tuple[Any, ...]:
         tree = self.synchrolang_parser.parse(script)
         return self.synchrolang_transformer.transform(tree)
 

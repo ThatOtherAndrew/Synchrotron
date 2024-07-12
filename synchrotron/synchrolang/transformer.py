@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import NoneType
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import lark
 
@@ -38,6 +38,22 @@ class SynchrolangTransformer(lark.Transformer):
         return list(elements)
 
     none = NoneType
+
+    def global_var(self, name: lark.Token) -> Any:
+        global_vars = {
+            'synchrotron': self.synchrotron,
+            'pyaudio': self.synchrotron.pyaudio_session,
+            'clock': self.synchrotron.global_clock,
+            'thread': self.synchrotron.render_thread,
+            'rate': self.synchrotron.sample_rate,
+            'buffer': self.synchrotron.buffer_size,
+            'nodes': self.synchrotron.nodes,
+        }
+
+        return_obj = global_vars.get(name, ...)
+        if return_obj is ...:
+            raise ValueError(f"unknown global variable '{name}'")
+        return return_obj
 
     # Node instantiation
 
@@ -143,5 +159,5 @@ class SynchrolangTransformer(lark.Transformer):
         return self.synchrotron.remove_node(node.name)
 
     @staticmethod
-    def eval(item: Expression) -> Expression:
-        return item
+    def script(*commands: Any) -> tuple[Any, ...]:
+        return commands

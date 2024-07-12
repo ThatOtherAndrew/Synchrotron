@@ -15,16 +15,15 @@ UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
 LOWERCASE_NAME: "a".."z" ("_" | LETTER | DIGIT)*
 
 // Literal values
-GLOBAL:
 BOOLEAN: "True"i | "False"i
 
-?value: "$" global                 -> global
-      | SIGNED_INT                 -> int
+?value: SIGNED_INT                 -> int
       | SIGNED_FLOAT               -> float
       | ESCAPED_STRING             -> string
       | BOOLEAN                    -> bool
       | "[" (value ","?)* "]"      -> array
       | ("None"i | "null"i | "_")  -> none
+      | "$" CNAME                  -> global_var
 
 // Node instantiation
 node_class: UPPERCASE_NAME
@@ -42,15 +41,15 @@ connection: output "->" input
 ?element: (node | port | connection)
 
 // Commands
-?expression: (value | global | node_class | node | port | connection)
+?expression: (value | node_class | node | port | connection)
 
-command: "start"i                                             -> start
-       | "stop"i                                              -> stop
-       | ["create"i | "new"i | "let"i]            node_init   -> create
-       | ("link"i | "connect"i | "attach"i)       connection  -> link
-       | ("unlink"i | "disconnect"i | "detach"i)  element     -> unlink
-       | ("remove"i | "delete"i)                  node        -> remove
-       | ["eval"i | "get"i | "query"i]            expression  -> eval
+?command: "start"i                                             -> start
+        | "stop"i                                              -> stop
+        | ["create"i | "new"i | "let"i]            node_init   -> create
+        | ("link"i | "connect"i | "attach"i)       connection  -> link
+        | ("unlink"i | "disconnect"i | "detach"i)  element     -> unlink
+        | ("remove"i | "delete"i)                  node        -> remove
+        | ["eval"i | "get"i | "query"i]            expression
 
 _COMMAND_DELIMITER: ";" _NEWLINE? | _NEWLINE
 script: _NEWLINE? [command (_COMMAND_DELIMITER command)* _COMMAND_DELIMITER?]
