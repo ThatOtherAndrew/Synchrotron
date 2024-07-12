@@ -98,13 +98,12 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         ...
 
     def action_submit(self) -> None:
-        expression = self.text
+        script = self.text
         self.clear()
-        self.app.output_log.write('[dim]> ' + escape(expression.replace('\n', '\n│ ')))
+        self.app.output_log.write('[dim]> ' + escape(script.replace('\n', '\n│ ')))
 
         try:
-            # return_data = self.app.synchrotron.execute(expression
-            return_data = self.app.synchrotron.synchrolang_parser.parse(expression)
+            return_data = self.app.synchrotron.execute(script)
         except Exception as error:
             if isinstance(error, VisitError):
                 error = error.orig_exc

@@ -15,9 +15,11 @@ UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
 LOWERCASE_NAME: "a".."z" ("_" | LETTER | DIGIT)*
 
 // Literal values
+GLOBAL:
 BOOLEAN: "True"i | "False"i
 
-?value: SIGNED_INT                 -> int
+?value: "$" global                 -> global
+      | SIGNED_INT                 -> int
       | SIGNED_FLOAT               -> float
       | ESCAPED_STRING             -> string
       | BOOLEAN                    -> bool
@@ -40,7 +42,7 @@ connection: output "->" input
 ?element: (node | port | connection)
 
 // Commands
-?expression: (value | node_class | node | port | connection)
+?expression: (value | global | node_class | node | port | connection)
 
 command: "start"i                                             -> start
        | "stop"i                                              -> stop
