@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+import aiohttp
 from lark.exceptions import VisitError
 from rich.highlighter import ReprHighlighter
 from rich.markup import escape
@@ -9,8 +10,6 @@ from rich.panel import Panel
 from textual import events, widgets
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-
-from synchrotron import Synchrotron
 
 
 class OutputLog(widgets.RichLog):
@@ -79,11 +78,11 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         self.border_title = 'Send a command...'
         self.border_subtitle = 'Synchrolang'
 
-    def on_key(self, event: events.Key) -> None:
+    async def on_key(self, event: events.Key) -> None:
         if event.key == 'enter':
             event.stop()
             event.prevent_default()
-            self.action_submit()
+            await self.action_submit()
 
     def action_newline(self) -> None:
         start, end = self.selection
@@ -97,15 +96,13 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         # TODO
         ...
 
-    def action_submit(self) -> None:
+    async def action_submit(self) -> None:
         script = self.text
         self.clear()
         self.app.output_log.write('[dim]> ' + escape(script.replace('\n', '\n│ ')))
 
         try:
-            if self.app.debug:
-                self.app.output_log.write(self.app.synchrotron.synchrolang_parser.parse(script))
-            return_data = self.app.synchrotron.execute(script)
+            response = await self.app.http_client.get('/execute', data=script)
 
         except Exception as error:
             if isinstance(error, VisitError):
@@ -118,7 +115,7 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
             ))
             return
 
-        for return_value in return_data:
+        for return_value in await response.json():
             self.app.output_log.write(return_value)
 
 
@@ -134,7 +131,7 @@ class Console(App, inherit_bindings=False):
 
     def __init__(self):
         super().__init__()
-        self.synchrotron = Synchrotron(buffer_size=22050)
+        self.http_client: aiohttp.ClientSession | None = None
         self.output_log = OutputLog(id='output_log')
         self.command_input = CommandInput(id='command_input')
 
@@ -146,9 +143,10 @@ class Console(App, inherit_bindings=False):
         footer.ctrl_to_caret = False
         yield footer
 
-    def on_ready(self) -> None:
+    async def on_ready(self) -> None:
+        self.http_client = aiohttp.ClientSession(base_url='http://localhost:2031')
         self.command_input.focus()
-        self.synchrotron.execute('''
+        await self.http_client.get('/execute', data='''
             freq = ConstantNode(440)
             sine = SineNode()
             out  = PlaybackNode()
@@ -158,7 +156,6 @@ class Console(App, inherit_bindings=False):
             link sine.out -> out.right
         ''')
 
-    def action_quit(self) -> None:
-        self.synchrotron.stop_rendering()
-        self.synchrotron.pyaudio_session.terminate()
+    async def action_quit(self) -> None:
+        await self.http_client.close()
         self.exit()

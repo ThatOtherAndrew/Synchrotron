@@ -145,3 +145,7 @@ class Synchrotron:
         self.stop_event.set()
         if self.render_thread is not None:
             self.render_thread.join()
+
+    def shutdown(self) -> None:
+        self.stop_rendering()
+        self.pyaudio_session.terminate()
