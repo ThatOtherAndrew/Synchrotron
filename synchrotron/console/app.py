@@ -147,13 +147,20 @@ class Console(App, inherit_bindings=False):
         self.http_client = aiohttp.ClientSession(base_url='http://localhost:2031')
         self.command_input.focus()
         await self.http_client.get('/execute', data='''
-            freq = ConstantNode(440)
-            sine = SineNode()
-            out  = PlaybackNode()
+            mod_freq = ConstantNode(.5)
+            modulator = SineNode()
+            mod_gain = ConstantNode(880)
+            multiply = MultiplyNode()
 
-            link freq.out -> sine.frequency
-            link sine.out -> out.left
-            link sine.out -> out.right
+            link mod_freq.out -> modulator.frequency
+            link modulator.out -> multiply.a
+            link mod_gain.out -> multiply.b
+
+            sine = SineNode()
+            output = PlaybackNode()
+            link multiply.out -> sine.frequency
+            link sine.out -> output.left
+            link sine.out -> output.right
         ''')
 
     async def action_quit(self) -> None:

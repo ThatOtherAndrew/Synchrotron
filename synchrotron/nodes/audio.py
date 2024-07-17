@@ -23,16 +23,20 @@ class SineNode(Node):
     frequency: Input
     out: Output
 
+    def __init__(self, synchrotron: Synchrotron, name: str) -> None:
+        super().__init__(synchrotron, name)
+        self.phase = 0.
+
     def render(self, ctx: RenderContext) -> None:
-        frequency = self.frequency.read(ctx)[0]
-        sine_window = np.linspace(
-            0,
-            2 * np.pi * frequency * ctx.buffer_size / ctx.sample_rate,
-            num=ctx.buffer_size,
-            endpoint=False,
-            dtype=np.float32,
-        )
-        self.out.write(np.sin(sine_window))
+        frequency = self.frequency.read(ctx)
+        waveform = np.empty(shape=ctx.buffer_size, dtype=np.float32)
+
+        for i in range(ctx.buffer_size):
+            waveform[i] = np.sin(self.phase)
+            self.phase += 2 * np.pi * frequency[i] / ctx.sample_rate
+            self.phase %= 2 * np.pi
+
+        self.out.write(np.sin(waveform))
 
 
 class PlaybackNode(Node):
