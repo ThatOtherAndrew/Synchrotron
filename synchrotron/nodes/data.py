@@ -36,6 +36,15 @@ class UniformRandomNode(Node):
         self.out.write(self.rng.uniform(low=low, high=high, size=ctx.buffer_size).astype(np.float32))
 
 
+class MultiplyNode(Node):
+    a: Input
+    b: Input
+    out: Output
+
+    def render(self, ctx: RenderContext) -> None:
+        self.out.write(self.a.read(ctx) * self.b.read(ctx))
+
+
 class DebugNode(Node):
     input: Input
 
