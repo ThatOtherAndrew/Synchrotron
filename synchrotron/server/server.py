@@ -4,7 +4,11 @@ from fastapi import FastAPI, Request
 
 from synchrotron import Synchrotron
 
+from . import api
+from .dependencies import SynchrotronDependency
 
+
+# noinspection PyUnresolvedReferences
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
     fastapi_app.state.synchrotron = Synchrotron()
@@ -13,6 +17,7 @@ async def lifespan(fastapi_app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(api.router)
 
 
 @app.get('/')
@@ -21,8 +26,7 @@ async def root():
 
 
 @app.get('/execute')
-async def execute(request: Request):
+async def execute(request: Request, synchrotron: SynchrotronDependency) -> str:
     body = await request.body()
-    synchrotron: Synchrotron = app.state.synchrotron
     return_values = synchrotron.execute(body.decode())
-    return return_values
+    return repr(return_values)

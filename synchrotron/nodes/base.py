@@ -29,6 +29,12 @@ class Port:
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.node.__class__.__name__} {self.instance_name!r}>'
 
+    def as_json(self) -> dict:
+        return {
+            'node_name': self.node.name,
+            'port_name': self.name,
+        }
+
 
 class Input(Port):
     def __init__(self, node: Node, name: str) -> None:
@@ -39,6 +45,13 @@ class Input(Port):
         if self.connection is None:
             self.buffer = np.zeros(shape=render_context.buffer_size, dtype=np.float32)
         return self.buffer
+
+    def as_json(self, include_connections: bool = False) -> dict:
+        json = super().as_json()
+        json['port_type'] = 'input'
+        if include_connections:
+            json['connection'] = self.connection
+        return json
 
 
 class Output(Port):

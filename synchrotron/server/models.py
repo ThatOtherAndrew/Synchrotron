@@ -35,5 +35,5 @@ class Connection(BaseModel):
 class Node(BaseModel):
     name: str
     class_name: str
-    inputs: list[BaseInput]
-    outputs: list[BaseOutput]
+    inputs: list[Input]
+    outputs: list[Output]
