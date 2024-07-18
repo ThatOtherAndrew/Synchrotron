@@ -1,0 +1,44 @@
+###
+GET http://localhost:2031/execute
+Content-Type: text/plain
+
+mod_freq = ConstantNode(.5)
+modulator = SineNode()
+mod_gain = ConstantNode(50)
+multiply = MultiplyNode()
+add = AddNode()
+avg_freq = ConstantNode(440)
+link mod_freq.out -> modulator.frequency
+link modulator.out -> multiply.a
+link mod_gain.out -> multiply.b
+link multiply.out -> add.a
+link avg_freq.out -> add.b
+sine = SineNode()
+output = PlaybackNode()
+link add.out -> sine.frequency
+link sine.out -> output.left
+link sine.out -> output.right
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+GET http://localhost:2031/nodes
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+GET http://localhost:2031/nodes/sine
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
