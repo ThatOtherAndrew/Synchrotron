@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -18,6 +18,12 @@ class Output(Port):
 
 class Node(BaseModel):
     name: str
-    class_name: str
+    type: str
     inputs: list[Input]
     outputs: list[Output]
+
+
+class NodeInitData(BaseModel):
+    type: str
+    args: list[Any]
+    kwargs: dict[str, Any]

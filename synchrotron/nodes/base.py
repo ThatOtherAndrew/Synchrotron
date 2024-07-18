@@ -143,7 +143,7 @@ class Node(abc.ABC):
     def as_json(self) -> dict:
         return {
             'name': self.name,
-            'class_name': self.__class__.__name__,
+            'type': self.__class__.__name__,
             'inputs': [input_port.as_json() for input_port in self.inputs],
             'outputs': [output_port.as_json() for output_port in self.outputs],
         }

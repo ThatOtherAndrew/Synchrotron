@@ -81,7 +81,7 @@ class SynchrolangTransformer(lark.Transformer):
         kwargs: dict[str, Value],
     ) -> Node:
         # noinspection PyArgumentList
-        node = cls(self.synchrotron, name.value, *args, **kwargs)
+        node = cls(self.synchrotron, str(name), *args, **kwargs)
         self.synchrotron.add_node(node)
         return node
 
