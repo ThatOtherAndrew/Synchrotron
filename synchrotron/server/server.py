@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from synchrotron import Synchrotron
 
@@ -17,6 +18,8 @@ async def lifespan(fastapi_app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+# noinspection PyTypeChecker
+app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'])
 app.include_router(api.router)
 
 
