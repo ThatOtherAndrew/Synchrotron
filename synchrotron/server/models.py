@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from pydantic import BaseModel
 
 
@@ -10,20 +8,12 @@ class Port(BaseModel):
     port_name: str
 
 
-class BaseInput(Port):
-    port_type: Literal['input']
+class Input(Port):
+    source: Port | None
 
 
-class Input(BaseInput):
-    source: BaseOutput | None
-
-
-class BaseOutput(Port):
-    port_type: Literal['output']
-
-
-class Output(BaseOutput):
-    sinks: list[BaseInput]
+class Output(Port):
+    sinks: list[Port]
 
 
 class Node(BaseModel):

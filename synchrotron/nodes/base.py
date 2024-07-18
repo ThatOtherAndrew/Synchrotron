@@ -48,7 +48,6 @@ class Input(Port):
 
     def as_json(self, include_source: bool = True) -> dict:
         json = super().as_json()
-        json['port_type'] = 'input'
         if include_source:
             json['source'] = None if self.connection is None else self.connection.source.as_json(include_sinks=False)
         return json
@@ -64,7 +63,6 @@ class Output(Port):
 
     def as_json(self, include_sinks: bool = True) -> dict:
         json = super().as_json()
-        json['port_type'] = 'output'
         if include_sinks:
             json['sinks'] = [conn.sink.as_json(include_source=False) for conn in self.connections]
         return json
