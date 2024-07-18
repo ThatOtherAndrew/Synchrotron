@@ -46,11 +46,11 @@ class Input(Port):
             self.buffer = np.zeros(shape=render_context.buffer_size, dtype=np.float32)
         return self.buffer
 
-    def as_json(self, include_connections: bool = False) -> dict:
+    def as_json(self, include_source: bool = True) -> dict:
         json = super().as_json()
         json['port_type'] = 'input'
-        if include_connections:
-            json['connection'] = self.connection
+        if include_source:
+            json['source'] = None if self.connection is None else self.connection.source.as_json(include_sinks=False)
         return json
 
 
@@ -61,6 +61,13 @@ class Output(Port):
 
     def write(self, buffer: SignalBuffer) -> None:
         self.buffer = buffer
+
+    def as_json(self, include_sinks: bool = True) -> dict:
+        json = super().as_json()
+        json['port_type'] = 'output'
+        if include_sinks:
+            json['sinks'] = [conn.sink.as_json(include_source=False) for conn in self.connections]
+        return json
 
 
 class Connection:
@@ -134,6 +141,14 @@ class Node(abc.ABC):
     @abc.abstractmethod
     def render(self, ctx: RenderContext) -> None:
         pass
+
+    def as_json(self) -> dict:
+        return {
+            'name': self.name,
+            'class_name': self.__class__.__name__,
+            'inputs': [input_port.as_json() for input_port in self.inputs],
+            'outputs': [output_port.as_json() for output_port in self.outputs],
+        }
 
 
 @dataclass

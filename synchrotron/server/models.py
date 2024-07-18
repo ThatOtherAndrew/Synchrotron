@@ -15,7 +15,7 @@ class BaseInput(Port):
 
 
 class Input(BaseInput):
-    connection: Connection | None
+    source: BaseOutput | None
 
 
 class BaseOutput(Port):
@@ -23,13 +23,7 @@ class BaseOutput(Port):
 
 
 class Output(BaseOutput):
-    connections: list[Connection]
-
-
-class Connection(BaseModel):
-    source: BaseOutput
-    sink: BaseInput
-    is_connected: bool
+    sinks: list[BaseInput]
 
 
 class Node(BaseModel):
