@@ -124,7 +124,6 @@ class SynchrolangTransformer(lark.Transformer):
         return node
 
     def link(self, connection: Connection) -> Connection:
-        self.unlink(connection.sink)
         return self.synchrotron.add_connection(connection.source, connection.sink)
 
     def unlink(self, target: Node | Port | Connection) -> str:

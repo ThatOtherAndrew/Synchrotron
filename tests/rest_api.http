@@ -49,3 +49,33 @@ GET http://localhost:2031/nodes/sine
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
+
+###
+GET http://localhost:2031/connections
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+###
+PATCH http://localhost:2031/connections
+Content-Type: application/json
+
+{
+  "source": {
+    "node_name": "sine",
+    "port_name": "out"
+  },
+  "sink": {
+    "node_name": "output",
+    "port_name": "left"
+  }
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}

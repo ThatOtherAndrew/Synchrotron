@@ -23,6 +23,11 @@ class Node(BaseModel):
     outputs: list[Output]
 
 
+class Connection(BaseModel):
+    source: Port
+    sink: Port
+
+
 class NodeInitData(BaseModel):
     type: str
     args: list[Any]

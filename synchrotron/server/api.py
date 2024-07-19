@@ -31,3 +31,15 @@ async def create_node(
         kwargs=node_init_data.kwargs,
     )
     return models.Node.model_validate(node.as_json())
+
+
+@router.get('/connections')
+async def get_connections(synchrotron: SynchrotronDependency) -> list[models.Connection]:
+    return [models.Connection.model_validate(connection.as_json()) for connection in synchrotron.connections]
+
+
+@router.patch('/connections')
+async def add_connection(synchrotron: SynchrotronDependency, connection: models.Connection) -> models.Connection:
+    source = synchrotron.get_node(connection.source.node_name).get_output(connection.source.port_name)
+    sink = synchrotron.get_node(connection.sink.node_name).get_input(connection.sink.port_name)
+    return models.Connection.model_validate(synchrotron.add_connection(source, sink).as_json())

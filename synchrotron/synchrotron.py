@@ -27,8 +27,8 @@ class Synchrotron:
         self.buffer_size = buffer_size
 
         self.nodes: list[Node] = []
+        self.connections: list[Connection] = []
         self._node_dependencies: dict[Node, set[Node]] = {}
-        self._connections: list[Connection] = []
         self._output_queues: list[Queue] = []
 
     def get_node(self, node_name: str) -> Node:
@@ -64,7 +64,7 @@ class Synchrotron:
         return node
 
     def get_connection(self, source: Output, sink: Input, return_disconnected: bool = False) -> Connection:
-        for connection in self._connections:
+        for connection in self.connections:
             if connection.source == source and connection.sink == sink:
                 return connection
 
@@ -72,15 +72,20 @@ class Synchrotron:
             return Connection(source, sink)
         raise ValueError(f'connection {source.instance_name} -> {sink.instance_name} does not exist')
 
-    def add_connection(self, source: Output, sink: Input) -> Connection:
+    def add_connection(self, source: Output, sink: Input, strict: bool = False) -> Connection:
         connection = self.get_connection(source, sink, return_disconnected=True)
         if connection.is_connected:
             return connection
 
+        if sink.connection is not None:
+            if strict:
+                raise ValueError(f'output {sink.instance_name} is already connected')
+            self.remove_connection(sink.connection.source, sink)
+
         connection.is_connected = True
         source.connections.append(connection)
         sink.connection = connection
-        self._connections.append(connection)
+        self.connections.append(connection)
         self._node_dependencies[sink.node].add(source.node)
 
         return connection
@@ -94,7 +99,7 @@ class Synchrotron:
         connection.is_connected = False
         source.connections.remove(connection)
         sink.connection = None
-        self._connections.remove(connection)
+        self.connections.remove(connection)
 
         # If sink node has no inputs connected to source node outputs then remove node dependency
         if not any(
