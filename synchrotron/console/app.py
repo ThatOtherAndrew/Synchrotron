@@ -170,3 +170,7 @@ class Console(App, inherit_bindings=False):
     async def action_quit(self) -> None:
         await self.http_client.close()
         self.exit()
+
+
+def run_app() -> None:
+    Console().run()

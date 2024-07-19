@@ -1,0 +1,71 @@
+[project]
+name = "synchrotron"
+version = "0.1.0"
+description = "Graph-based live audio manipulation engine implemented in Python"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+keywords = ["audio-processing", "synthesizer"]
+
+authors = [
+  { name = "ThatOtherAndrew", email = "andrew@thatother.dev" }
+]
+maintainers = [
+  { name = "ThatOtherAndrew", email = "andrew@thatother.dev" }
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+
+  "Environment :: Console",
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: End Users/Desktop",
+  "Topic :: Software Development :: Build Tools",
+
+  "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3 :: Only",
+
+  "Topic :: Artistic Software",
+  "Topic :: Multimedia :: Sound/Audio",
+  "Topic :: Multimedia :: Sound/Audio :: Mixers",
+  "Topic :: Multimedia :: Sound/Audio :: Players",
+  "Topic :: Multimedia :: Sound/Audio :: Sound Synthesis",
+]
+
+dependencies = [
+  "fastapi",
+  "lark",
+  "numpy",
+  "pyaudio",
+  "typer",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build",
+  "textual-dev",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ThatOtherAndrew/Synchrotron"
+"Bug Reports" = "https://github.com/ThatOtherAndrew/Synchrotron/issues"
+"Source" = "https://github.com/ThatOtherAndrew/Synchrotron"
+
+[project.scripts]
+synchrotron-server = "synchrotron.server.cli:cli"
+synchrotron-console = "synchrotron.console.app:run_app"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+packages = ["synchrotron"]
