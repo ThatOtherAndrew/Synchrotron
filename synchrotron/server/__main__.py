@@ -1,9 +1,4 @@
-import contextlib
-
-import uvicorn
-
-from .server import app
+from .cli import cli
 
 if __name__ == '__main__':
-    with contextlib.suppress(KeyboardInterrupt):
-        uvicorn.run(app, host='localhost', port=2031)
+    cli()
