@@ -11,7 +11,7 @@ from synchrotron.nodes import Connection, Input, Node, Output, Port
 if TYPE_CHECKING:
     from threading import Thread
 
-    from synchrotron import Synchrotron
+    from synchrotron.synchrotron import Synchrotron
 
 Value: TypeAlias = str | int | float | list['Value'] | bool | None
 Expression: TypeAlias = Value | type[Node] | Node | Port | Connection

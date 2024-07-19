@@ -9,7 +9,8 @@ import numpy as np
 if TYPE_CHECKING:
     from collections.abc import ValuesView
 
-    from synchrotron import SignalBuffer, Synchrotron
+    from synchrotron.synchrotron import Synchrotron
+    from synchrotron.types import SignalBuffer
 
 
 class Port:

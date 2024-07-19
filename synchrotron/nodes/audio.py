@@ -9,7 +9,7 @@ import pyaudio
 from .base import Input, Node, Output, RenderContext
 
 if TYPE_CHECKING:
-    from synchrotron import Synchrotron
+    from synchrotron.synchrotron import Synchrotron
 
 
 class SilenceNode(Node):

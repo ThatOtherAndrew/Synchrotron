@@ -2,7 +2,7 @@ from typing import Annotated, TypeAlias
 
 from fastapi import Depends, Request
 
-from synchrotron import Synchrotron
+from synchrotron.synchrotron import Synchrotron
 
 
 def get_synchrotron_instance(request: Request) -> Synchrotron:

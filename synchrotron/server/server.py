@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from synchrotron import Synchrotron
+from synchrotron.synchrotron import Synchrotron
 
 from . import api
 from .dependencies import SynchrotronDependency
