@@ -27,7 +27,7 @@ POST http://localhost:2031/nodes/output
 Content-Type: application/json
 
 {
-  "type": "OutputNode",
+  "type": "PlaybackNode",
   "args": [],
   "kwargs": {}
 }
