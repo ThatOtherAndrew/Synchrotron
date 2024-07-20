@@ -115,8 +115,7 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
             ))
             return
 
-        for return_value in await response.json():
-            self.app.output_log.write(return_value)
+        self.app.output_log.write(await response.json())
 
 
 class Console(App, inherit_bindings=False):
