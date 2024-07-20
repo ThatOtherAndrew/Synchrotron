@@ -115,7 +115,15 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
             ))
             return
 
-        self.app.output_log.write(await response.json())
+        if response.ok:
+            self.app.output_log.write(await response.json())
+        else:
+            self.app.output_log.write(Panel(
+                await response.text(),
+                title=f'HTTP {response.status}',
+                expand=False,
+                border_style='red',
+            ))
 
 
 class Console(App, inherit_bindings=False):
