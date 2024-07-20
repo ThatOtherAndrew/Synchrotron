@@ -16,6 +16,7 @@ class ConstantNode(Node):
     def __init__(self, synchrotron: Synchrotron, name: str, value: float) -> None:
         super().__init__(synchrotron, name)
         self.value = value
+        self.exports['Value'] = value
 
     def render(self, ctx: RenderContext) -> None:
         self.out.write(np.full(shape=ctx.buffer_size, fill_value=self.value, dtype=np.float32))

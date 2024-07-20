@@ -59,6 +59,8 @@ class PlaybackNode(Node):
             stream_callback=self._pyaudio_callback,
         )
 
+        self.exports['Device'] = synchrotron.pyaudio_session.get_default_output_device_info().get('name')
+
     def _pyaudio_callback(self, *_):
         buffer = self.playback_queue.get()
         self.playback_queue.task_done()

@@ -21,6 +21,7 @@ class Node(BaseModel):
     type: str
     inputs: list[Input]
     outputs: list[Output]
+    exports: dict[str, Any]
 
 
 class Connection(BaseModel):

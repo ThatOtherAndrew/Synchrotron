@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 import numpy as np
 
@@ -97,6 +97,7 @@ class Node(abc.ABC):
     def __init__(self, synchrotron: Synchrotron, name: str) -> None:
         self.synchrotron = synchrotron
         self.name = name
+        self.exports: dict[str, Any] = {}
         self._inputs: dict[str, Input] = {}
         self._outputs: dict[str, Output] = {}
 
@@ -118,7 +119,15 @@ class Node(abc.ABC):
             setattr(self, name, instance)
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__} {self.name!r} ({len(self._inputs)} => {len(self._outputs)})>'
+        parts = [
+            self.__class__.__name__,
+            repr(self.name),
+            f'({len(self._inputs)} => {len(self._outputs)})',
+        ]
+        if self.exports:
+            parts.append('{' + ', '.join(f'{key}: {value!r}' for key, value in self.exports.items()) + '}')
+
+        return f'<{" ".join(parts)}>'
 
     @property
     def inputs(self) -> ValuesView[Input]:
@@ -155,6 +164,7 @@ class Node(abc.ABC):
             'type': self.__class__.__name__,
             'inputs': [input_port.as_json() for input_port in self.inputs],
             'outputs': [output_port.as_json() for output_port in self.outputs],
+            'exports': self.exports,
         }
 
 
