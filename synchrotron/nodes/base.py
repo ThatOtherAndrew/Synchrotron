@@ -84,9 +84,11 @@ class Connection:
             raise TypeError(f"cannot compare instances of '{self.__class__.__name__}' and '{other.__class__.__name__}'")
         return self.source == other.source and self.sink == other.sink
 
-    def as_json(self) -> dict:
-        if not self.is_connected:
-            raise RuntimeError('refusing to serialise nonexistant connection - this is probably a mistake!')
+    def as_json(self, connection_assertion: bool | None = None) -> dict:
+        if connection_assertion is not None and connection_assertion != self.is_connected:
+            raise RuntimeError(f'connection state assertion failed '
+                               f'(is_connected is {self.is_connected}, expected {connection_assertion})')
+
         return {
             'source': self.source.as_json(include_sinks=False),
             'sink': self.sink.as_json(include_source=False),
