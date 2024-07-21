@@ -19,7 +19,7 @@ async def lifespan(fastapi_app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 # noinspection PyTypeChecker
-app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 app.include_router(api.router)
 
 
