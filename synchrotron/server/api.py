@@ -6,6 +6,16 @@ from .dependencies import SynchrotronDependency
 router = APIRouter()
 
 
+@router.get('/start')
+async def start_rendering(synchrotron: SynchrotronDependency) -> None:
+    synchrotron.start_rendering()
+
+
+@router.get('/stop')
+async def stop_rendering(synchrotron: SynchrotronDependency) -> None:
+    synchrotron.stop_rendering()
+
+
 @router.get('/nodes')
 async def get_nodes(synchrotron: SynchrotronDependency) -> list[models.Node]:
     return [models.Node.model_validate(node.as_json()) for node in synchrotron.nodes]
