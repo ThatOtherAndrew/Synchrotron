@@ -127,33 +127,16 @@ class SynchrolangTransformer(lark.Transformer):
         return self.synchrotron.add_connection(connection.source, connection.sink)
 
     def unlink(self, target: Node | Port | Connection) -> str:
-        ports: list[Port] = []
-        connections = []
-        unlinks = 0
-
         if isinstance(target, Node):
-            ports.extend(target.inputs)
-            ports.extend(target.outputs)
+            unlinked_count = len(self.synchrotron.unlink_node(target))
         elif isinstance(target, Port):
-            ports.append(target)
+            unlinked_count = len(self.synchrotron.unlink_port(target))
         elif isinstance(target, Connection):
-            connections.append(target)
+            unlinked_count = int(bool(self.synchrotron.remove_connection(target.source, target.sink)))
         else:
             raise TypeError(f'invalid target to unlink: expected Node | Port | Connection, got {type(target)}')
 
-        for port in ports:
-            if isinstance(port, Input):
-                if port.connection is not None:
-                    connections.append(port.connection)
-            elif isinstance(port, Output):
-                connections.extend(port.connections)
-
-        for connection in connections:
-            if self.synchrotron.get_connection(connection.source, connection.sink).is_connected:
-                self.synchrotron.remove_connection(connection.source, connection.sink)
-                unlinks += 1
-
-        return f'{unlinks} connection{"s" if unlinks != 1 else ""} unlinked'
+        return f'{unlinked_count} connection{"s" if unlinked_count != 1 else ""} unlinked'
 
     def remove(self, node: Node) -> Node:
         return self.synchrotron.remove_node(node.name)

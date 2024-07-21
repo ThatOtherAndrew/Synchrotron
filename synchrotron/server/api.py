@@ -43,6 +43,11 @@ async def create_node(
     return models.Node.model_validate(node.as_json())
 
 
+@router.delete('/nodes/{node_name}')
+async def remove_node(synchrotron: SynchrotronDependency, node_name: str) -> models.Node:
+    return models.Node.model_validate(synchrotron.remove_node(node_name).as_json())
+
+
 @router.get('/connections')
 async def get_connections(synchrotron: SynchrotronDependency) -> list[models.Connection]:
     return [models.Connection.model_validate(connection.as_json()) for connection in synchrotron.connections]
@@ -53,3 +58,17 @@ async def add_connection(synchrotron: SynchrotronDependency, connection: models.
     source = synchrotron.get_node(connection.source.node_name).get_output(connection.source.port_name)
     sink = synchrotron.get_node(connection.sink.node_name).get_input(connection.sink.port_name)
     return models.Connection.model_validate(synchrotron.add_connection(source, sink).as_json())
+
+
+@router.delete('/connections/')
+async def remove_connection(
+    synchrotron: SynchrotronDependency,
+    connection: models.Connection
+) -> models.Connection | None:
+    source = synchrotron.get_node(connection.source.node_name).get_output(connection.source.port_name)
+    sink = synchrotron.get_node(connection.sink.node_name).get_input(connection.sink.port_name)
+    connection = synchrotron.remove_connection(source, sink)
+
+    if connection is None:
+        return None
+    return models.Connection.model_validate(connection.as_json())

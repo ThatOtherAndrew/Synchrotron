@@ -7,7 +7,7 @@ from graphlib import TopologicalSorter
 from pyaudio import PyAudio
 
 from . import synchrolang
-from .nodes import Connection, Input, Node, Output, RenderContext
+from .nodes import Connection, Input, Node, Output, Port, RenderContext
 
 if TYPE_CHECKING:
     from queue import Queue
@@ -90,11 +90,11 @@ class Synchrotron:
 
         return connection
 
-    def remove_connection(self, source: Output, sink: Input) -> None:
+    def remove_connection(self, source: Output, sink: Input) -> Connection | None:
         try:
             connection = self.get_connection(source, sink)
         except ValueError:
-            return
+            return None
 
         connection.is_connected = False
         source.connections.remove(connection)
@@ -108,6 +108,27 @@ class Synchrotron:
             if input_port.connection is not None
         ):
             self._node_dependencies[sink.node].remove(source.node)
+
+        return connection
+
+    def unlink_port(self, port: Port) -> list[Connection]:
+        if isinstance(port, Input):
+            removed_connections = [self.remove_connection(port.connection.source, port.connection.sink)]
+        else:
+            port: Output
+            removed_connections = [
+                self.remove_connection(connection.source, connection.sink)
+                for connection in port.connections
+            ]
+
+        return list(filter(None, removed_connections))
+
+    def unlink_node(self, node: Node) -> list[Connection]:
+        removed_connections = []
+        for port in (*node.inputs, *node.outputs):
+            removed_connections.extend(self.unlink_port(port))
+
+        return removed_connections
 
     def execute(self, script: str) -> tuple[Any, ...]:
         tree = self.synchrolang_parser.parse(script)
