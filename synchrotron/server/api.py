@@ -60,7 +60,7 @@ async def add_connection(synchrotron: SynchrotronDependency, connection: models.
     return models.Connection.model_validate(synchrotron.add_connection(source, sink).as_json())
 
 
-@router.delete('/connections/')
+@router.delete('/connections')
 async def remove_connection(
     synchrotron: SynchrotronDependency,
     connection: models.Connection
