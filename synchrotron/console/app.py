@@ -102,7 +102,7 @@ class CommandInput(widgets.TextArea, inherit_bindings=False):
         self.app.output_log.write('[dim]> ' + escape(script.replace('\n', '\n│ ')))
 
         try:
-            response = await self.app.http_client.get('/execute', data=script)
+            response = await self.app.http_client.post('/execute', data=script)
 
         except Exception as error:
             if isinstance(error, VisitError):

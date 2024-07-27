@@ -1,9 +1,17 @@
 from fastapi import APIRouter
+from fastapi.requests import Request
 
 from . import models
 from .dependencies import SynchrotronDependency
 
 router = APIRouter()
+
+
+@router.post('/execute')
+async def execute(request: Request, synchrotron: SynchrotronDependency) -> str:
+    body = await request.body()
+    return_values = synchrotron.execute(body.decode())
+    return repr(return_values)
 
 
 @router.get('/start')

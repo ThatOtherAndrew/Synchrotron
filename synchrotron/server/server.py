@@ -1,12 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from synchrotron.synchrotron import Synchrotron
 
 from . import api
-from .dependencies import SynchrotronDependency
 
 
 # noinspection PyUnresolvedReferences
@@ -26,10 +25,3 @@ app.include_router(api.router)
 @app.get('/')
 async def root():
     return 'Synchrotron server running'
-
-
-@app.get('/execute')
-async def execute(request: Request, synchrotron: SynchrotronDependency) -> str:
-    body = await request.body()
-    return_values = synchrotron.execute(body.decode())
-    return repr(return_values)
