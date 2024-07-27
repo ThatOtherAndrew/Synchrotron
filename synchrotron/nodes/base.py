@@ -42,9 +42,9 @@ class Input(Port):
         super().__init__(node=node, name=name)
         self.connection: Connection | None = None
 
-    def read(self, render_context: RenderContext) -> SignalBuffer:
+    def read(self, render_context: RenderContext, default_constant: float = 0.) -> SignalBuffer:
         if self.connection is None:
-            self.buffer = np.zeros(shape=render_context.buffer_size, dtype=np.float32)
+            self.buffer = np.full(shape=render_context.buffer_size, fill_value=default_constant, dtype=np.float32)
         return self.buffer
 
     def as_json(self, include_source: bool = True) -> dict:
