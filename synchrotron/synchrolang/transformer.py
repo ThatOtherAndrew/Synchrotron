@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+import string
 from types import NoneType
 from typing import TYPE_CHECKING, Any, TypeAlias
 
@@ -7,6 +9,7 @@ import lark
 
 from synchrotron import nodes
 from synchrotron.nodes import Connection, Input, Node, Output, Port
+from synchrotron.nodes.data import ConstantNode
 
 if TYPE_CHECKING:
     from threading import Thread
@@ -73,18 +76,6 @@ class SynchrolangTransformer(lark.Transformer):
     def keyword_arguments(*args: lark.Token | Value) -> dict[str, Value]:
         return dict(zip((key.value for key in args[0::2]), args[1::2]))
 
-    def node_init(
-        self,
-        name: lark.Token,
-        cls: type[Node],
-        args: list[Value],
-        kwargs: dict[str, Value],
-    ) -> Node:
-        # noinspection PyArgumentList
-        node = cls(self.synchrotron, str(name), *args, **kwargs)
-        self.synchrotron.add_node(node)
-        return node
-
     # Graph elements
 
     def node(self, node_name: lark.Token) -> Node:
@@ -122,8 +113,20 @@ class SynchrolangTransformer(lark.Transformer):
     def export(self) -> str:
         return self.synchrotron.export_state()
 
-    @staticmethod
-    def create(node: Node) -> Node:
+    def create(self, cls: type[Node] | int | float, name: str | None = None) -> Node:
+        if name is None:
+            existing_names = {node.name for node in self.synchrotron.nodes}
+            while name is None or name in existing_names:
+                name = ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
+        else:
+            name = str(name)
+
+        if isinstance(cls, (int, float)):
+            node = ConstantNode(synchrotron=self.synchrotron, name=name, value=cls)
+        else:
+            node = cls(synchrotron=self.synchrotron, name=name)
+
+        self.synchrotron.add_node(node)
         return node
 
     def link(self, connection: Connection) -> Connection:

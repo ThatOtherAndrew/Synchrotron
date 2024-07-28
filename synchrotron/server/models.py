@@ -27,9 +27,3 @@ class Node(BaseModel):
 class Connection(BaseModel):
     source: Port
     sink: Port
-
-
-class NodeInitData(BaseModel):
-    type: str
-    args: list[Any]
-    kwargs: dict[str, Any]

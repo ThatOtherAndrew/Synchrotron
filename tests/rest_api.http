@@ -2,18 +2,18 @@
 POST http://localhost:2031/execute
 Content-Type: text/plain
 
-mod_freq = ConstantNode(.5)
-modulator = SineNode()
-mod_gain = ConstantNode(50)
-multiply = MultiplyNode()
-add = AddNode()
-avg_freq = ConstantNode(440)
+new .5 mod_freq
+new SineNode modulator
+new 50 mod_gain
+new MultiplyNode multiply
+new AddNode add
+new 440 avg_freq
+new SineNode sine
 link mod_freq.out -> modulator.frequency
 link modulator.out -> multiply.a
 link mod_gain.out -> multiply.b
 link multiply.out -> add.a
 link avg_freq.out -> add.b
-sine = SineNode()
 link add.out -> sine.frequency
 
 > {%
@@ -23,14 +23,7 @@ link add.out -> sine.frequency
 %}
 
 ###
-POST http://localhost:2031/nodes/output
-Content-Type: application/json
-
-{
-  "type": "PlaybackNode",
-  "args": [],
-  "kwargs": {}
-}
+POST http://localhost:2031/nodes/output?type=PlaybackNode
 
 ###
 GET http://localhost:2031/nodes

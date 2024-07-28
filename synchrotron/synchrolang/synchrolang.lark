@@ -17,8 +17,10 @@ LOWERCASE_NAME: "a".."z" ("_" | LETTER | DIGIT)*
 // Literal values
 BOOLEAN: "True"i | "False"i
 
-?value: SIGNED_INT                 -> int
-      | SIGNED_FLOAT               -> float
+int: SIGNED_INT
+float: SIGNED_FLOAT
+?number: int | float
+?value: number
       | ESCAPED_STRING             -> string
       | BOOLEAN                    -> bool
       | "[" (value ","?)* "]"      -> array
@@ -29,7 +31,6 @@ BOOLEAN: "True"i | "False"i
 node_class: UPPERCASE_NAME
 arguments: (value ","?)*
 keyword_arguments: (CNAME "=" value ","?)*
-node_init: LOWERCASE_NAME "=" node_class "(" arguments keyword_arguments ")"
 
 // Graph elements
 node: LOWERCASE_NAME
@@ -43,13 +44,13 @@ connection: output "->" input
 // Commands
 ?expression: (value | node_class | node | port | connection)
 
-?command: "start"i                                             -> start
-        | "stop"i                                              -> stop
-        | ("export"i | "save"i)                                -> export
-        | ["create"i | "new"i | "let"i]            node_init   -> create
-        | ("link"i | "connect"i | "attach"i)       connection  -> link
-        | ("unlink"i | "disconnect"i | "detach"i)  element     -> unlink
-        | ("remove"i | "delete"i)                  node        -> remove
+?command: "start"i                                                                        -> start
+        | "stop"i                                                                         -> stop
+        | ("export"i | "save"i)                                                           -> export
+        | ("create"i | "new"i)                     (node_class | number) LOWERCASE_NAME?  -> create
+        | ("link"i | "connect"i | "attach"i)       connection                             -> link
+        | ("unlink"i | "disconnect"i | "detach"i)  element                                -> unlink
+        | ("remove"i | "delete"i)                  node                                   -> remove
         | ["eval"i | "get"i | "query"i]            expression
 
 _COMMAND_DELIMITER: ";" _NEWLINE? | _NEWLINE

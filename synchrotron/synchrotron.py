@@ -8,6 +8,7 @@ from pyaudio import PyAudio
 
 from . import synchrolang
 from .nodes import Connection, Input, Node, Output, Port, RenderContext
+from .nodes.data import ConstantNode
 
 if TYPE_CHECKING:
     from queue import Queue
@@ -157,7 +158,8 @@ class Synchrotron:
     def export_state(self) -> str:
         script = ''
         for node in self.nodes:
-            script += f'{node.name} = {node.__class__.__name__}();\n'
+            # noinspection PyUnresolvedReferences
+            script += f'new {node.value if isinstance(node, ConstantNode) else node.__class__.__name__} {node.name};\n'
         script += '\n'
         for connection in self.connections:
             script += f'link {connection.source.instance_name} -> {connection.sink.instance_name};\n'
