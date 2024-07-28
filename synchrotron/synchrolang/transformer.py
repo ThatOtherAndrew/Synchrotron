@@ -119,6 +119,9 @@ class SynchrolangTransformer(lark.Transformer):
     def stop(self) -> None:
         self.synchrotron.stop_rendering()
 
+    def export(self) -> str:
+        return self.synchrotron.export_state()
+
     @staticmethod
     def create(node: Node) -> Node:
         return node

@@ -24,6 +24,11 @@ async def stop_rendering(synchrotron: SynchrotronDependency) -> None:
     synchrotron.stop_rendering()
 
 
+@router.get('/export')
+async def export_state(synchrotron: SynchrotronDependency) -> str:
+    return synchrotron.export_state()
+
+
 @router.get('/nodes')
 async def get_nodes(synchrotron: SynchrotronDependency) -> list[models.Node]:
     return [models.Node.model_validate(node.as_json()) for node in synchrotron.nodes]

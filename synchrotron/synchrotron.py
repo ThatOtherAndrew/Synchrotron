@@ -154,6 +154,16 @@ class Synchrotron:
             queue.join()
         self.global_clock += 1
 
+    def export_state(self) -> str:
+        script = ''
+        for node in self.nodes:
+            script += f'{node.name} = {node.__class__.__name__}();\n'
+        script += '\n'
+        for connection in self.connections:
+            script += f'link {connection.source.instance_name} -> {connection.sink.instance_name};\n'
+
+        return script
+
     def start_rendering(self) -> Thread:
         if self.render_thread is not None and self.render_thread.is_alive():
             raise RuntimeError('render thread is already running')

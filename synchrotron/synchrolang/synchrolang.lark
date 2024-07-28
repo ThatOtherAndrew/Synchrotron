@@ -45,6 +45,7 @@ connection: output "->" input
 
 ?command: "start"i                                             -> start
         | "stop"i                                              -> stop
+        | ("export"i | "save"i)                                -> export
         | ["create"i | "new"i | "let"i]            node_init   -> create
         | ("link"i | "connect"i | "attach"i)       connection  -> link
         | ("unlink"i | "disconnect"i | "detach"i)  element     -> unlink
