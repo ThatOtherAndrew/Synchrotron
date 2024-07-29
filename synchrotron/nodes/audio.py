@@ -61,6 +61,26 @@ class SquareNode(Node):
         self.out.write(waveform)
 
 
+class SawtoothNode(Node):
+    frequency: Input
+    out: Output
+
+    def __init__(self, synchrotron: Synchrotron, name: str) -> None:
+        super().__init__(synchrotron, name)
+        self.phase = 0.
+
+    def render(self, ctx: RenderContext) -> None:
+        frequency = self.frequency.read(ctx)
+        waveform = np.empty(shape=ctx.buffer_size, dtype=np.float32)
+
+        for i in range(ctx.buffer_size):
+            waveform[i] = self.phase
+            self.phase += frequency[i] / ctx.sample_rate
+            self.phase %= 1
+
+        self.out.write(waveform)
+
+
 class PlaybackNode(Node):
     left: Input
     right: Input
