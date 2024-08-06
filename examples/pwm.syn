@@ -1,0 +1,19 @@
+new 0.2 pwm_mod_freq;
+new 0.24 scale_val;
+new SineNode pwm_mod;
+new 0.75 offset_val;
+new MultiplyNode scale;
+new 440 freq;
+new AddNode offset;
+new SquareNode square;
+new PlaybackNode out;
+
+link square.out -> out.left;
+link square.out -> out.right;
+link pwm_mod_freq.out -> pwm_mod.frequency;
+link pwm_mod.out -> scale.a;
+link scale_val.out -> scale.b;
+link scale.out -> offset.a;
+link offset_val.out -> offset.b;
+link freq.out -> square.frequency;
+link offset.out -> square.pwm;
