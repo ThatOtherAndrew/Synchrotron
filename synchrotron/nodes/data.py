@@ -9,7 +9,7 @@ from . import DataInput, Node, RenderContext, StreamInput, StreamOutput
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-__all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode', 'SequenceNode']
+__all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode', 'SequenceNode', 'ClockNode']
 
 
 class UniformRandomNode(Node):
@@ -75,4 +75,28 @@ class SequenceNode(Node):
                 self.sequence_position %= len(sequence)
             output[i] = sequence[self.sequence_position]
 
+        self.out.write(output)
+
+
+class ClockNode(Node):
+    frequency: StreamInput
+    out: StreamOutput
+
+    def __init__(self, synchrotron: Synchrotron, name: str):
+        super().__init__(synchrotron, name)
+        self.count = 0
+
+    def render(self, ctx: RenderContext) -> None:
+        frequency = self.frequency.read(ctx)
+        output = np.zeros(shape=ctx.buffer_size, dtype=np.bool)
+
+        for i in range(ctx.buffer_size):
+            period = 1 / frequency[i]
+            self.count += frequency[i] / ctx.sample_rate
+            if self.count > period:
+                output[i] = True
+                self.count %= period
+
+        # noinspection PyTypeChecker
+        # TODO: hopefully can fix soon:tm:
         self.out.write(output)

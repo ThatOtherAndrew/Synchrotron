@@ -4,25 +4,23 @@ import abc
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeAlias, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 import numpy as np
-from numpy.typing import NDArray
 
 if TYPE_CHECKING:
     from collections.abc import ValuesView
 
+    from numpy.typing import NDArray
+
     from synchrotron.synchrotron import Synchrotron
-
-
-StreamBuffer: TypeAlias = NDArray[np.float32]
 
 
 class Port:
     def __init__(self, node: Node, name: str) -> None:
         self.node = node
         self.name = name
-        self.buffer: StreamBuffer = np.zeros(shape=1, dtype=np.float32)
+        self.buffer: Any = None
 
     @property
     def type_name(self) -> str:
@@ -87,7 +85,8 @@ class DataOutput(Output):
 
 
 class StreamInput(Input):
-    def read(self, render_context: RenderContext, default_constant: float = 0.) -> StreamBuffer:
+    # TODO: Some magic with generics to allow for non-float32 streams
+    def read(self, render_context: RenderContext, default_constant: float = 0.) -> NDArray[np.float32]:
         if self.connection is None:
             self.buffer = np.full(shape=render_context.buffer_size, fill_value=default_constant, dtype=np.float32)
         elif not isinstance(self.buffer, np.ndarray):
@@ -97,7 +96,7 @@ class StreamInput(Input):
 
 
 class StreamOutput(Output):
-    def write(self, buffer: StreamBuffer) -> None:
+    def write(self, buffer: NDArray[np.float32]) -> None:
         self.buffer = buffer
 
 
