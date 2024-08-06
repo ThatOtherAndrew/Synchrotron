@@ -9,7 +9,7 @@ from . import DataInput, Node, RenderContext, StreamInput, StreamOutput
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-__all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode']
+__all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode', 'SequenceNode']
 
 
 class UniformRandomNode(Node):
@@ -53,3 +53,26 @@ class DebugNode(Node):
             return
         buffer = self.input.read()
         print(buffer)
+
+
+class SequenceNode(Node):
+    sequence: DataInput
+    step: StreamInput
+    out: StreamOutput
+
+    def __init__(self, synchrotron: Synchrotron, name: str):
+        super().__init__(synchrotron, name)
+        self.sequence_position = 0
+
+    def render(self, ctx: RenderContext) -> None:
+        step = self.step.read(ctx)
+        output = np.empty(shape=ctx.buffer_size, dtype=np.float32)
+        sequence = self.sequence.read()
+
+        for i in range(ctx.buffer_size):
+            if step[i]:
+                self.sequence_position += 1
+                self.sequence_position %= len(sequence)
+            output[i] = sequence[self.sequence_position]
+
+        self.out.write(output)
