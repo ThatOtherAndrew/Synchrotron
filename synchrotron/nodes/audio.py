@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pyaudio
 
-from . import Input, Node, Output, RenderContext
+from . import Node, RenderContext, StreamInput, StreamOutput
 
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
@@ -15,15 +15,15 @@ __all__ = ['SilenceNode', 'SineNode', 'SquareNode', 'SawtoothNode', 'PlaybackNod
 
 
 class SilenceNode(Node):
-    out: Output
+    out: StreamOutput
 
     def render(self, ctx: RenderContext) -> None:
         self.out.write(np.zeros(shape=ctx.buffer_size, dtype=np.float32))
 
 
 class SineNode(Node):
-    frequency: Input
-    out: Output
+    frequency: StreamInput
+    out: StreamOutput
 
     def __init__(self, synchrotron: Synchrotron, name: str) -> None:
         super().__init__(synchrotron, name)
@@ -42,9 +42,9 @@ class SineNode(Node):
 
 
 class SquareNode(Node):
-    frequency: Input
-    pwm: Input
-    out: Output
+    frequency: StreamInput
+    pwm: StreamInput
+    out: StreamOutput
 
     def __init__(self, synchrotron: Synchrotron, name: str) -> None:
         super().__init__(synchrotron, name)
@@ -64,8 +64,8 @@ class SquareNode(Node):
 
 
 class SawtoothNode(Node):
-    frequency: Input
-    out: Output
+    frequency: StreamInput
+    out: StreamOutput
 
     def __init__(self, synchrotron: Synchrotron, name: str) -> None:
         super().__init__(synchrotron, name)
@@ -84,8 +84,8 @@ class SawtoothNode(Node):
 
 
 class PlaybackNode(Node):
-    left: Input
-    right: Input
+    left: StreamInput
+    right: StreamInput
 
     def __init__(self, synchrotron: Synchrotron, name: str) -> None:
         super().__init__(synchrotron, name)

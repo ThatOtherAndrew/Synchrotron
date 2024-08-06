@@ -1,1 +1,13 @@
-from ._base import Connection, Input, Node, Output, Port, RenderContext, get_node_types
+from ._base import (
+    Connection,
+    DataInput,
+    DataOutput,
+    Input,
+    Node,
+    Output,
+    Port,
+    RenderContext,
+    StreamInput,
+    StreamOutput,
+    get_node_types,
+)

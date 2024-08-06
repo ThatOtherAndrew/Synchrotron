@@ -9,10 +9,12 @@ class Port(BaseModel):
 
 
 class Input(Port):
+    type: str
     source: Port | None
 
 
 class Output(Port):
+    type: str
     sinks: list[Port]
 
 

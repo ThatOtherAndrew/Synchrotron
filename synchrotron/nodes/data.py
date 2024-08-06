@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from . import Input, Node, Output, RenderContext
+from . import DataInput, Node, RenderContext, StreamInput, StreamOutput
 
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
@@ -13,9 +13,9 @@ __all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode']
 
 
 class UniformRandomNode(Node):
-    min: Input
-    max: Input
-    out: Output
+    min: StreamInput
+    max: StreamInput
+    out: StreamOutput
 
     def __init__(self, synchrotron: Synchrotron, name: str) -> None:
         super().__init__(synchrotron, name)
@@ -28,28 +28,28 @@ class UniformRandomNode(Node):
 
 
 class AddNode(Node):
-    a: Input
-    b: Input
-    out: Output
+    a: StreamInput
+    b: StreamInput
+    out: StreamOutput
 
     def render(self, ctx: RenderContext) -> None:
         self.out.write(self.a.read(ctx) + self.b.read(ctx))
 
 
 class MultiplyNode(Node):
-    a: Input
-    b: Input
-    out: Output
+    a: StreamInput
+    b: StreamInput
+    out: StreamOutput
 
     def render(self, ctx: RenderContext) -> None:
         self.out.write(self.a.read(ctx) * self.b.read(ctx))
 
 
 class DebugNode(Node):
-    input: Input
+    input: DataInput
 
-    def render(self, ctx: RenderContext) -> None:
+    def render(self, _: RenderContext) -> None:
         if self.input.connection is None:
             return
-        buffer = self.input.read(ctx)
+        buffer = self.input.read()
         print(buffer)

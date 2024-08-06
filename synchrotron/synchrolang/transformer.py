@@ -111,14 +111,14 @@ class SynchrolangTransformer(lark.Transformer):
         if name is None:
             existing_names = {node.name for node in self.synchrotron.nodes}
             while name is None or name in existing_names:
-                name = ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
+                name = '_' + ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
         else:
             name = str(name)
 
-        if isinstance(cls, (int, float)):
-            node = DataNode(synchrotron=self.synchrotron, name=name, value=cls)
-        else:
+        if isinstance(cls, type):
             node = cls(synchrotron=self.synchrotron, name=name)
+        else:
+            node = DataNode(synchrotron=self.synchrotron, name=name, value=cls)
 
         self.synchrotron.add_node(node)
         return node

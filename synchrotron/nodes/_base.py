@@ -4,22 +4,25 @@ import abc
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, get_type_hints
+from typing import TYPE_CHECKING, Any, TypeAlias, get_type_hints
 
 import numpy as np
+from numpy.typing import NDArray
 
 if TYPE_CHECKING:
     from collections.abc import ValuesView
 
     from synchrotron.synchrotron import Synchrotron
-    from synchrotron.types import SignalBuffer
+
+
+StreamBuffer: TypeAlias = NDArray[np.float32]
 
 
 class Port:
     def __init__(self, node: Node, name: str) -> None:
         self.node = node
         self.name = name
-        self.buffer: SignalBuffer = np.zeros(shape=1, dtype=np.float32)
+        self.buffer: StreamBuffer = np.zeros(shape=1, dtype=np.float32)
 
     @property
     def type_name(self) -> str:
@@ -39,36 +42,63 @@ class Port:
         }
 
 
-class Input(Port):
+class Input(Port, abc.ABC):
     def __init__(self, node: Node, name: str) -> None:
         super().__init__(node=node, name=name)
         self.connection: Connection | None = None
 
-    def read(self, render_context: RenderContext, default_constant: float = 0.) -> SignalBuffer:
-        if self.connection is None:
-            self.buffer = np.full(shape=render_context.buffer_size, fill_value=default_constant, dtype=np.float32)
+    @abc.abstractmethod
+    def read(self, *_, **__) -> Any:
         return self.buffer
 
     def as_json(self, include_source: bool = True) -> dict:
         json = super().as_json()
+        json['type'] = self.__class__.__name__
         if include_source:
             json['source'] = None if self.connection is None else self.connection.source.as_json(include_sinks=False)
         return json
 
 
-class Output(Port):
+class Output(Port, abc.ABC):
     def __init__(self, node: Node, name: str) -> None:
         super().__init__(node=node, name=name)
         self.connections: list[Connection] = []
 
-    def write(self, buffer: SignalBuffer) -> None:
+    @abc.abstractmethod
+    def write(self, buffer: Any) -> None:
         self.buffer = buffer
 
     def as_json(self, include_sinks: bool = True) -> dict:
         json = super().as_json()
+        json['type'] = self.__class__.__name__
         if include_sinks:
             json['sinks'] = [conn.sink.as_json(include_source=False) for conn in self.connections]
         return json
+
+
+class DataInput(Input):
+    def read(self) -> Any:
+        return self.buffer
+
+
+class DataOutput(Output):
+    def write(self, buffer: Any) -> None:
+        self.buffer = buffer
+
+
+class StreamInput(Input):
+    def read(self, render_context: RenderContext, default_constant: float = 0.) -> StreamBuffer:
+        if self.connection is None:
+            self.buffer = np.full(shape=render_context.buffer_size, fill_value=default_constant, dtype=np.float32)
+        elif not isinstance(self.buffer, np.ndarray):
+            self.buffer = np.full(shape=render_context.buffer_size, fill_value=self.buffer, dtype=np.float32)
+
+        return self.buffer
+
+
+class StreamOutput(Output):
+    def write(self, buffer: StreamBuffer) -> None:
+        self.buffer = buffer
 
 
 class Connection:
@@ -107,18 +137,21 @@ class Node(abc.ABC):
 
         # A bit of magic so inputs and outputs are nicer to interact with
         for name, cls in get_type_hints(self.__class__).items():
-            if cls not in (Input, Output):
+            print(cls)
+            if not issubclass(cls, Port):
                 continue
 
             if name in self._inputs or name in self._outputs:
                 raise RuntimeError(f"duplicate port name '{name}' for node {self.__class__.__name__}")
 
-            if cls is Input:
-                instance = Input(self, name=name)
+            if issubclass(cls, Input):
+                instance = cls(self, name=name)
                 self._inputs[name] = instance
-            else:
-                instance = Output(self, name=name)
+            elif issubclass(cls, Output):
+                instance = cls(self, name=name)
                 self._outputs[name] = instance
+            else:
+                raise RuntimeError(f"unrecognised port type '{cls.__name__}'")
 
             setattr(self, name, instance)
 
