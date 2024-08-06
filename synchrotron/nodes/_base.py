@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
+from importlib import import_module
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 import numpy as np
@@ -20,7 +22,7 @@ class Port:
         self.buffer: SignalBuffer = np.zeros(shape=1, dtype=np.float32)
 
     @property
-    def class_name(self) -> str:
+    def type_name(self) -> str:
         return self.node.__class__.__name__ + '.' + self.name
 
     @property
@@ -175,3 +177,14 @@ class RenderContext:
     global_clock: int
     sample_rate: int
     buffer_size: int
+
+
+def get_node_types() -> list[type[Node]]:
+    node_types = []
+
+    for path in Path(__file__).parent.rglob('[!_]*.py'):
+        module = import_module('.' + path.stem, package='synchrotron.nodes')
+        if hasattr(module, '__all__'):
+            node_types.extend(getattr(module, node_name) for node_name in module.__all__)
+
+    return node_types

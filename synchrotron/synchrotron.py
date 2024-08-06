@@ -7,8 +7,8 @@ from graphlib import TopologicalSorter
 from pyaudio import PyAudio
 
 from . import synchrolang
-from .nodes import Connection, Input, Node, Output, Port, RenderContext
-from .nodes.data import ConstantNode
+from .nodes import Connection, Input, Node, Output, Port, RenderContext, get_node_types
+from .nodes.core import DataNode
 
 if TYPE_CHECKING:
     from queue import Queue
@@ -27,10 +27,16 @@ class Synchrotron:
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
 
+        self.node_types = {node_type.__name__: node_type for node_type in get_node_types()}
         self.nodes: list[Node] = []
         self.connections: list[Connection] = []
         self._node_dependencies: dict[Node, set[Node]] = {}
         self._output_queues: list[Queue] = []
+
+    def get_node_type(self, node_type: str) -> type[Node]:
+        if node_type not in self.node_types:
+            raise ValueError(f"node type '{node_type}' not found")
+        return self.node_types[node_type]
 
     def get_node(self, node_name: str) -> Node:
         try:
@@ -159,7 +165,7 @@ class Synchrotron:
         script = ''
         for node in self.nodes:
             # noinspection PyUnresolvedReferences
-            script += f'new {node.value if isinstance(node, ConstantNode) else node.__class__.__name__} {node.name};\n'
+            script += f'new {node.value if isinstance(node, DataNode) else node.__class__.__name__} {node.name};\n'
         script += '\n'
         for connection in self.connections:
             script += f'link {connection.source.instance_name} -> {connection.sink.instance_name};\n'

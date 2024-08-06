@@ -40,7 +40,7 @@ async def create_unnamed_node(
     synchrotron: SynchrotronDependency,
     type: str,
 ) -> models.Node:
-    cls = synchrotron.synchrolang_transformer.node_class(class_name=type)
+    cls = synchrotron.synchrolang_transformer.node_type(type_name=type)
     node = synchrotron.synchrolang_transformer.create(cls=cls)
     return models.Node.model_validate(node.as_json())
 
@@ -57,7 +57,7 @@ async def create_node(
     node_name: str,
     type: str,
 ) -> models.Node:
-    cls = synchrotron.synchrolang_transformer.node_class(class_name=type)
+    cls = synchrotron.synchrolang_transformer.node_type(type_name=type)
     node = synchrotron.synchrolang_transformer.create(cls=cls, name=node_name)
     return models.Node.model_validate(node.as_json())
 

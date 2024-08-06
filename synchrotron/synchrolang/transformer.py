@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 import lark
 
-from synchrotron import nodes
 from synchrotron.nodes import Connection, Input, Node, Output, Port
-from synchrotron.nodes.data import ConstantNode
+from synchrotron.nodes.core import DataNode
 
 if TYPE_CHECKING:
     from threading import Thread
@@ -60,13 +59,8 @@ class SynchrolangTransformer(lark.Transformer):
 
     # Node instantiation
 
-    @staticmethod
-    def node_class(class_name: lark.Token) -> type[Node]:
-        node = getattr(nodes, class_name, NoneType)
-        if not issubclass(node, Node):
-            raise ValueError(f"node class '{class_name}' not found")
-
-        return node
+    def node_type(self, type_name: lark.Token) -> type[Node]:
+        return self.synchrotron.get_node_type(type_name)
 
     @staticmethod
     def arguments(*args: Value) -> list[Value]:
@@ -90,14 +84,14 @@ class SynchrolangTransformer(lark.Transformer):
         if isinstance(port, Input):
             return port
 
-        raise ValueError(f"'{port.instance_name}' is an output port ({port.class_name}) and cannot be used as an input")
+        raise ValueError(f"'{port.instance_name}' is an output port ({port.type_name}) and cannot be used as an input")
 
     @staticmethod
     def output(port: Port) -> Output:
         if isinstance(port, Output):
             return port
 
-        raise ValueError(f"'{port.instance_name}' is an input port ({port.class_name}) and cannot be used as an output")
+        raise ValueError(f"'{port.instance_name}' is an input port ({port.type_name}) and cannot be used as an output")
 
     def connection(self, source: Output, sink: Input) -> Connection:
         return self.synchrotron.get_connection(source, sink, return_disconnected=True)
@@ -122,7 +116,7 @@ class SynchrolangTransformer(lark.Transformer):
             name = str(name)
 
         if isinstance(cls, (int, float)):
-            node = ConstantNode(synchrotron=self.synchrotron, name=name, value=cls)
+            node = DataNode(synchrotron=self.synchrotron, name=name, value=cls)
         else:
             node = cls(synchrotron=self.synchrotron, name=name)
 

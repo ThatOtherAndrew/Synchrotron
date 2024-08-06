@@ -6,10 +6,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pyaudio
 
-from .base import Input, Node, Output, RenderContext
+from . import Input, Node, Output, RenderContext
 
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
+
+__all__ = ['SilenceNode', 'SineNode', 'SquareNode', 'SawtoothNode', 'PlaybackNode']
 
 
 class SilenceNode(Node):

@@ -4,22 +4,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .base import Input, Node, Output, RenderContext
+from . import Input, Node, Output, RenderContext
 
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-
-class ConstantNode(Node):
-    out: Output
-
-    def __init__(self, synchrotron: Synchrotron, name: str, value: float) -> None:
-        super().__init__(synchrotron, name)
-        self.value = value
-        self.exports['Value'] = value
-
-    def render(self, ctx: RenderContext) -> None:
-        self.out.write(np.full(shape=ctx.buffer_size, fill_value=self.value, dtype=np.float32))
+__all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode']
 
 
 class UniformRandomNode(Node):

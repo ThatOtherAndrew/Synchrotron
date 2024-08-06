@@ -153,26 +153,6 @@ class Console(App, inherit_bindings=False):
     async def on_ready(self) -> None:
         self.http_client = aiohttp.ClientSession(base_url='http://localhost:2031')
         self.command_input.focus()
-        # await self.http_client.get('/execute', data='''
-        #     mod_freq = ConstantNode(.5)
-        #     modulator = SineNode()
-        #     mod_gain = ConstantNode(50)
-        #     multiply = MultiplyNode()
-        #     add = AddNode()
-        #     avg_freq = ConstantNode(440)
-        #
-        #     link mod_freq.out -> modulator.frequency
-        #     link modulator.out -> multiply.a
-        #     link mod_gain.out -> multiply.b
-        #     link multiply.out -> add.a
-        #     link avg_freq.out -> add.b
-        #
-        #     sine = SineNode()
-        #     output = PlaybackNode()
-        #     link add.out -> sine.frequency
-        #     link sine.out -> output.left
-        #     link sine.out -> output.right
-        # ''')
 
     async def action_quit(self) -> None:
         await self.http_client.close()
