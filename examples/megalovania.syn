@@ -1,0 +1,13 @@
+new [293.66, 293.66, 587.33, 0, 440, 440, 0, 415.3, 0, 392, 0, 349.23, 349.23, 293.66, 349.23, 392] _dijfv;
+new PlaybackNode _srhto;
+new SineNode _rxgch;
+new ClockNode _hktbv;
+new SequenceNode _galcu;
+new 2.5 _fwjwg;
+
+link _rxgch.out -> _srhto.left;
+link _rxgch.out -> _srhto.right;
+link _hktbv.out -> _galcu.step;
+link _dijfv.out -> _galcu.sequence;
+link _galcu.out -> _rxgch.frequency;
+link _fwjwg.out -> _hktbv.frequency;

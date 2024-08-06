@@ -136,7 +136,6 @@ class Node(abc.ABC):
 
         # A bit of magic so inputs and outputs are nicer to interact with
         for name, cls in get_type_hints(self.__class__).items():
-            print(cls)
             if not issubclass(cls, Port):
                 continue
 
