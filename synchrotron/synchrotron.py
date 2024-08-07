@@ -159,7 +159,7 @@ class Synchrotron:
 
         for queue in self._output_queues:
             queue.join()
-        self.global_clock += 1
+        self.global_clock += self.buffer_size
 
     def export_state(self) -> str:
         script = ''

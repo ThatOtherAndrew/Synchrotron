@@ -42,6 +42,7 @@ classifiers = [
 dependencies = [
   "fastapi",
   "lark",
+  "mido",
   "numpy",
   "pyaudio",
   "typer",

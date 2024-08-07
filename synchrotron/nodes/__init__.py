@@ -3,6 +3,8 @@ from ._base import (
     DataInput,
     DataOutput,
     Input,
+    MidiInput,
+    MidiOutput,
     Node,
     Output,
     Port,
