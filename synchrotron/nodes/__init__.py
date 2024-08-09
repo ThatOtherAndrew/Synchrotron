@@ -3,8 +3,6 @@ from ._base import (
     DataInput,
     DataOutput,
     Input,
-    MidiInput,
-    MidiOutput,
     Node,
     Output,
     Port,
@@ -13,3 +11,4 @@ from ._base import (
     StreamOutput,
     get_node_types,
 )
+from ._midi import Message, MidiBuffer, MidiInput, MidiOutput

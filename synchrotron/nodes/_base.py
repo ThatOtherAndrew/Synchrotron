@@ -11,7 +11,6 @@ import numpy as np
 if TYPE_CHECKING:
     from collections.abc import ValuesView
 
-    import mido
     from numpy.typing import NDArray
 
     from synchrotron.synchrotron import Synchrotron
@@ -99,27 +98,6 @@ class StreamInput(Input):
 class StreamOutput(Output):
     def write(self, buffer: NDArray[np.float32]) -> None:
         self.buffer = buffer
-
-
-class MidiInput(Input):
-    def __init__(self, node: Node, name: str) -> None:
-        super().__init__(node, name)
-        self.buffer: list[mido.Message] = []
-
-    def read(self) -> list[mido.Message]:
-        return self.buffer
-
-
-class MidiOutput(Output):
-    def __init__(self, node: Node, name: str):
-        super().__init__(node, name)
-        self.buffer: list[mido.Message] = []
-
-    def write(self, buffer: list[mido.Message]) -> None:
-        self.buffer = buffer
-
-    def add_message(self, message: mido.Message) -> None:
-        self.buffer.append(message)
 
 
 class Connection:
