@@ -1,0 +1,11 @@
+new 1 _uzmsc;
+new MidiInputNode _gffia;
+new MonophonicRenderNode _peqjo;
+new SineNode _drxcl;
+new PlaybackNode _dcywl;
+
+link _uzmsc.out -> _gffia.port;
+link _gffia.out -> _peqjo.midi;
+link _drxcl.out -> _dcywl.left;
+link _drxcl.out -> _dcywl.right;
+link _peqjo.frequency -> _drxcl.frequency;

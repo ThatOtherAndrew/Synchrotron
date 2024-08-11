@@ -75,7 +75,9 @@ class Output(Port, abc.ABC):
 
 
 class DataInput(Input):
-    def read(self) -> Any:
+    def read(self, default: Any = None) -> Any:
+        if self.buffer is None:
+            return default
         return self.buffer
 
 

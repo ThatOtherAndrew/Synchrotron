@@ -11,4 +11,4 @@ from ._base import (
     StreamOutput,
     get_node_types,
 )
-from ._midi import Message, MidiBuffer, MidiInput, MidiOutput
+from ._midi import MidiBuffer, MidiInput, MidiMessage, MidiOutput

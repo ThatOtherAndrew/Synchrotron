@@ -3,12 +3,12 @@ from __future__ import annotations
 from synchrotron.nodes import Input, Node, Output
 
 
-class Message:
+class MidiMessage:
     OPCODE_MASK = 0xf0
     CHANNEL_MASK = 0x0f
 
-    NOTE_OFF = 0x70
-    NOTE_ON = 0x80
+    NOTE_OFF = 0x80
+    NOTE_ON = 0x90
 
 
 class MidiBuffer:
