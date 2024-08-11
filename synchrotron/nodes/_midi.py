@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from enum import Enum
-
 from synchrotron.nodes import Input, Node, Output
 
 
-class Message(Enum):
+class Message:
     OPCODE_MASK = 0xf0
     CHANNEL_MASK = 0x0f
 
@@ -22,11 +20,17 @@ class MidiBuffer:
         return sum(len(msgs) for msgs in self.data.values())
 
     def get_messages_at_pos(self, position: int) -> tuple[bytes, ...]:
+        if position not in range(self.length):
+            raise ValueError(f'MIDI message position {position} out of bounds for buffer length {self.length}')
+
         if position not in self.data:
             return ()
         return tuple(self.data[position])
 
     def add_message(self, position: int, message: bytes):
+        if position not in range(self.length):
+            raise ValueError(f'MIDI message position {position} out of bounds for buffer length {self.length}')
+
         if position not in self.data:
             self.data[position] = []
         self.data[position].append(message)
