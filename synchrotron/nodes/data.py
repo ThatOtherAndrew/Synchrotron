@@ -9,7 +9,15 @@ from . import DataInput, Node, RenderContext, StreamInput, StreamOutput
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-__all__ = ['UniformRandomNode', 'AddNode', 'MultiplyNode', 'DebugNode', 'SequenceNode', 'ClockNode']
+__all__ = [
+    'UniformRandomNode',
+    'AddNode',
+    'MultiplyNode',
+    'DebugNode',
+    'SequenceNode',
+    'ClockNode',
+    'TriggerEnvelopeNode',
+]
 
 
 class UniformRandomNode(Node):
@@ -100,3 +108,24 @@ class ClockNode(Node):
         # noinspection PyTypeChecker
         # TODO: hopefully can fix soon:tm:
         self.out.write(output)
+
+
+class TriggerEnvelopeNode(Node):
+    trigger: StreamInput
+    attack: StreamInput
+    decay: StreamInput
+    envelope: StreamOutput
+
+    def render(self, ctx: RenderContext) -> None:
+        envelope = np.zeros(shape=ctx.buffer_size, dtype=np.float32)
+        trigger = self.trigger.read(ctx)
+        attack = self.attack.read(ctx)
+        decay = self.decay.read(ctx)
+
+        for i in range(ctx.buffer_size):
+            if not trigger[i]:
+                continue
+
+            # TODO: finish this off and add a more elegant way of handling "overflow" into the next buffer?
+
+        self.envelope.write(envelope)

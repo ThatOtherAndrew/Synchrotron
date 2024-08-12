@@ -10,7 +10,7 @@ from . import DataInput, MidiBuffer, MidiInput, MidiMessage, MidiOutput, Node, R
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-__all__ = ['MidiInputNode', 'MonophonicRenderNode']
+__all__ = ['MidiInputNode', 'MidiTriggerNode', 'MonophonicRenderNode']
 
 
 class MidiInputNode(Node):
@@ -50,16 +50,32 @@ class MidiInputNode(Node):
         self.out.write(buffer)
 
 
+class MidiTriggerNode(Node):
+    midi: MidiInput
+    trigger: StreamOutput
+
+    def render(self, ctx: RenderContext) -> None:
+        output = np.zeros(shape=ctx.buffer_size, dtype=np.bool)
+
+        for i, messages in self.midi.buffer.data.values():
+            if any(msg[0] & MidiMessage.OPCODE_MASK == MidiMessage.NOTE_ON for msg in messages):
+                output[i] = True
+
+        # noinspection PyTypeChecker
+        # again, typing here needs fixing somehow
+        self.trigger.write(output)
+
+
 class MonophonicRenderNode(Node):
     midi: MidiInput
     frequency: StreamOutput
 
     def __init__(self, synchrotron: Synchrotron, name: str):
         super().__init__(synchrotron, name)
-        self.current_note = 0
+        self.current_note: int | None = None
 
     def render(self, ctx: RenderContext) -> None:
-        output = np.empty(shape=ctx.buffer_size, dtype=np.float32)
+        output = np.zeros(shape=ctx.buffer_size, dtype=np.float32)
 
         for i in range(ctx.buffer_size):
             for message in self.midi.buffer.get_messages_at_pos(i):
@@ -68,8 +84,9 @@ class MonophonicRenderNode(Node):
                 elif message[0] & MidiMessage.OPCODE_MASK == MidiMessage.NOTE_OFF:
                     if message[1] != self.current_note:
                         continue
-                    self.current_note = 0
+                    self.current_note = None
 
-            output[i] = 440 * (2 ** ((self.current_note - 69) / 12))
+            if self.current_note is not None:
+                output[i] = 440 * (2 ** ((self.current_note - 69) / 12))
 
         self.frequency.write(output)
