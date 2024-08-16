@@ -204,6 +204,9 @@ class Node(abc.ABC):
             'exports': self.exports,
         }
 
+    def teardown(self) -> None:  # noqa: B027
+        pass
+
 
 @dataclass
 class RenderContext:

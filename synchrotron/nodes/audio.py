@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
 from queue import Queue
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pyaudio
+from soundfile import SoundFile
 
-from . import Node, RenderContext, StreamInput, StreamOutput
+from . import DataInput, Node, RenderContext, StreamInput, StreamOutput
 
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-__all__ = ['SilenceNode', 'SineNode', 'SquareNode', 'SawtoothNode', 'PlaybackNode']
+__all__ = ['SilenceNode', 'SineNode', 'SquareNode', 'SawtoothNode', 'PlaybackNode', 'WavFileNode']
 
 
 class SilenceNode(Node):
@@ -118,3 +120,22 @@ class PlaybackNode(Node):
         stereo_buffer[0::2] = left_buffer
         stereo_buffer[1::2] = right_buffer
         self.playback_queue.put_nowait(stereo_buffer)
+
+
+class WavFileNode(Node):
+    path: DataInput
+    signal: StreamInput
+
+    def __init__(self, synchrotron: Synchrotron, name: str):
+        super().__init__(synchrotron, name)
+
+        path = Path(self.path.read(default='output.wav')).resolve()
+        self.file = SoundFile(path, mode='wb', samplerate=synchrotron.sample_rate, channels=1, subtype='FLOAT')
+
+        self.exports['File Path'] = path.as_posix()
+
+    def render(self, ctx: RenderContext) -> None:
+        self.file.write(self.signal.read(ctx))
+
+    def teardown(self) -> None:
+        self.file.close()

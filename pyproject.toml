@@ -45,7 +45,9 @@ dependencies = [
   "numpy",
   "pyaudio",
   "python-rtmidi",
+  "soundfile",
   "typer",
+  "uvicorn",
 ]
 
 [project.optional-dependencies]

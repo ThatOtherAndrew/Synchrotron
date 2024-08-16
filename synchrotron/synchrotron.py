@@ -68,6 +68,8 @@ class Synchrotron:
         self.nodes.remove(node)
         self._node_dependencies.pop(node, None)
 
+        node.teardown()
+
         return node
 
     def get_connection(self, source: Output, sink: Input, return_disconnected: bool = False) -> Connection:
@@ -192,4 +194,6 @@ class Synchrotron:
 
     def shutdown(self) -> None:
         self.stop_rendering()
+        for node in self.nodes:
+            self.remove_node(node.name)
         self.pyaudio_session.terminate()
