@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 from rtmidi import MidiIn
 
-from . import DataInput, MidiBuffer, MidiInput, MidiMessage, MidiOutput, Node, RenderContext, StreamOutput
+from . import DataInput, MidiBuffer, MidiInput, MidiMessage, MidiOutput, Node, RenderContext, StreamInput, StreamOutput
 
 if TYPE_CHECKING:
     from synchrotron.synchrotron import Synchrotron
 
-__all__ = ['MidiInputNode', 'MidiTriggerNode', 'MonophonicRenderNode']
+__all__ = ['MidiInputNode', 'MidiTriggerNode', 'MidiTranspositionNode', 'MonophonicRenderNode']
 
 
 class MidiInputNode(Node):
@@ -64,6 +64,25 @@ class MidiTriggerNode(Node):
         # noinspection PyTypeChecker
         # again, typing here needs fixing somehow
         self.trigger.write(output)
+
+
+class MidiTranspositionNode(Node):
+    midi: MidiInput
+    transposition: StreamInput
+    out: MidiOutput
+
+    def render(self, ctx: RenderContext) -> None:
+        transposition = self.transposition.read(ctx)
+        output = MidiBuffer(length=ctx.buffer_size)
+
+        for i in range(ctx.buffer_size):
+            for message in self.midi.buffer.get_messages_at_pos(i):
+                if message[0] & MidiMessage.OPCODE_MASK in (MidiMessage.NOTE_ON, MidiMessage.NOTE_OFF):
+                    transposed = bytearray(message)
+                    transposed[1] += transposition[i]
+                    output.add_message(position=i, message=bytes(transposed))
+
+        self.out.write(output)
 
 
 class MonophonicRenderNode(Node):
