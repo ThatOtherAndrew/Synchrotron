@@ -8,7 +8,11 @@
 %import python.atom
 
 %import common.WS_INLINE
+%import common.CPP_COMMENT
+%import common.C_COMMENT
 %ignore WS_INLINE
+%ignore CPP_COMMENT
+%ignore C_COMMENT
 
 
 UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
