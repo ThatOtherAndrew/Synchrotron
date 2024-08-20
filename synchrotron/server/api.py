@@ -24,6 +24,12 @@ async def stop_rendering(synchrotron: SynchrotronDependency) -> None:
     synchrotron.stop_rendering()
 
 
+@router.get('/clear')
+async def clear_graph(synchrotron: SynchrotronDependency) -> None:
+    for node in synchrotron.nodes:
+        synchrotron.remove_node(node.name)
+
+
 @router.get('/export')
 async def export_state(synchrotron: SynchrotronDependency) -> str:
     return synchrotron.export_state()

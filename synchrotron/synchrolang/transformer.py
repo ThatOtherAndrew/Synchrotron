@@ -30,16 +30,16 @@ class SynchrolangTransformer(lark.Transformer):
     int = int
     float = float
     string = str
+    null = NoneType
 
     @staticmethod
     def bool(token: lark.Token) -> bool:
         return token.lower() == 'true'
 
+
     @staticmethod
     def array(*elements: Value) -> list[Value]:
         return list(elements)
-
-    none = NoneType
 
     def global_var(self, name: lark.Token) -> Any:
         global_vars = {
@@ -103,6 +103,10 @@ class SynchrolangTransformer(lark.Transformer):
 
     def stop(self) -> None:
         self.synchrotron.stop_rendering()
+
+    def clear(self) -> None:
+        for node in self.synchrotron.nodes:
+            self.synchrotron.remove_node(node.name)
 
     def export(self) -> str:
         return self.synchrotron.export_state()

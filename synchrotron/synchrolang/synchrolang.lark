@@ -19,15 +19,17 @@ UPPERCASE_NAME: "A".."Z" ("_" | LETTER | DIGIT)*
 LOWERCASE_NAME: "_"? "a".."z" ("_" | LETTER | DIGIT)*
 
 // Literal values
-BOOLEAN: "True"i | "False"i
+BOOLEAN.1: "true"i | "false"i
+NULL.1: "none"i | "null"i
+UNDERSCORE: "_"
 
-?value: SIGNED_INT                 -> int
-      | SIGNED_FLOAT               -> float
-      | ESCAPED_STRING             -> string
-      | BOOLEAN                    -> bool
-      | "[" (value ","?)* "]"      -> array
-      | ("None"i | "null"i | "_")  -> none
-      | "$" CNAME                  -> global_var
+?value: SIGNED_INT             -> int
+      | SIGNED_FLOAT           -> float
+      | ESCAPED_STRING         -> string
+      | (NULL | UNDERSCORE)    -> null
+      | BOOLEAN                -> bool
+      | "[" (value ","?)* "]"  -> array
+      | "$" CNAME              -> global_var
 
 // Node instantiation
 node_type: UPPERCASE_NAME
@@ -48,6 +50,7 @@ connection: output "->" input
 
 ?command: "start"i                                                                      -> start
         | "stop"i                                                                       -> stop
+        | "clear"i                                                                      -> clear
         | ("export"i | "save"i)                                                         -> export
         | ("create"i | "new"i)                     (node_type | value) LOWERCASE_NAME?  -> create
         | ("link"i | "connect"i | "attach"i)       connection                           -> link
@@ -55,6 +58,6 @@ connection: output "->" input
         | ("remove"i | "delete"i)                  node                                 -> remove
         | ["eval"i | "get"i | "query"i]            expression
 
-_COMMAND_DELIMITER: ";" _NEWLINE? | _NEWLINE
-script: _NEWLINE? [command (_COMMAND_DELIMITER command)* _COMMAND_DELIMITER?]
+?delimited_command: command? ";" _NEWLINE* | command _NEWLINE+
+script: delimited_command* command?
 ?start: script
