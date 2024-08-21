@@ -37,3 +37,7 @@ synchrotron-console
 Synchrotron provides a **Python API**, **[DSL](https://www.jetbrains.com/mps/concepts/domain-specific-languages/)**, and **REST API** for interacting with the *synchrotron server* - the component of Synchrotron which handles the audio rendering and playback.
 
 For the humans, you can find a web-based user interface for Synchrotron at **[ThatOtherAndrew/SynchrotronUI](https://github.com/ThatOtherAndrew/SynchrotronUI)**.
+
+## Random YouTube Video
+
+I recorded myself at a pretty garden in Queens' College in Oxford yapping about dependency graphs: https://youtu.be/qkNqOcH2jWE
