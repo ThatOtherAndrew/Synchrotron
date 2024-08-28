@@ -4,6 +4,34 @@ Graph-based live audio manipulation engine implemented in Python
 
 ---
 
+## What is it?
+
+Synchrotron is all of the following:
+- DSP (Digital Signal Processing) engine
+- Audio router / muxer
+- Synthesiser
+- Audio effects engine
+- MIDI instrument
+- And more!
+
+It's still very much a baby project, but make no mistake, it can already be pretty powerful! Take a look for yourself:
+
+| [Hack Club Showcase - Synchrotron](https://youtu.be/wlhBz62t2zE)                                                                 |
+|----------------------------------------------------------------------------------------------------------------------------------|
+| [![Hack Club Showcase - Synchrotron](https://img.youtube.com/vi/wlhBz62t2zE/0.jpg)](https://www.youtube.com/watch?v=wlhBz62t2zE) |
+
+Synchrotron has been designed from the ground up with **maximum flexibility and interoperability in mind**, and as such, there are many ways to use Synchrotron and interact with the server.
+
+This includes (click images to enlarge):
+
+| Blender-inspired node editor UI                                         | Fancy TUI Console                                                       | REST API                                                                | Python API                                                              |
+|-------------------------------------------------------------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [![](https://i.imgur.com/MXSbFcv.png)](https://i.imgur.com/MXSbFcv.png) | [![](https://i.imgur.com/t924jJd.png)](https://i.imgur.com/t924jJd.png) | [![](https://i.imgur.com/AUAx4xs.png)](https://i.imgur.com/AUAx4xs.png) | [![](https://i.imgur.com/j5xTHEa.png)](https://i.imgur.com/j5xTHEa.png) |
+
+The possibilities are endless - whether you wish to render audio to a WAV file on a remote server, or embed the Python package as a dependency for your desktop app. Use Synchrotron as a Python library, interact with its webserver's endpoints through an HTTP client, or use the elegant Synchrolang syntax to control it with just your keyboard.
+
+---
+
 ## Installation
 
 Synchrotron can be installed from this repository directly via [pip](https://packaging.python.org/en/latest/tutorials/installing-packages/):
