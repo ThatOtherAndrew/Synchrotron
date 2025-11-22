@@ -33,6 +33,9 @@ async def clear_graph(synchrotron: SynchrotronDependency) -> None:
 async def export_state(synchrotron: SynchrotronDependency) -> str:
     return synchrotron.export_state()
 
+@router.get('/node-types')
+async def get_node_types(synchrotron: SynchrotronDependency) -> list[str]:
+    return synchrotron.node_types.keys()
 
 @router.get('/nodes')
 async def get_nodes(synchrotron: SynchrotronDependency) -> list[models.Node]:
